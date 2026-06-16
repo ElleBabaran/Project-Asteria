@@ -28,6 +28,7 @@ export interface Resource {
   status: "approved" | "pending" | "rejected";
   rejectionReason?: string;
   fileSize: string;
+  fileUrl?: string;
   comments: Comment[];
 }
 
@@ -277,7 +278,45 @@ const initialResources: Resource[] = [
     status: "pending",
     fileSize: "2.1 MB",
     comments: []
-  }
+  },
+{
+  id: "res-10",
+  title: "Atoms, Elements and Compounds",
+  country: "India",
+  curriculum: "CBSE",
+  grade: "Class 9",
+  subject: "Chemistry",
+  topic: "About the Atoms in each and every body and their chemistry with compunds and elemnts ",
+  description: "Key Structure of an atom, Difference between molecules and compounds, Practise Questions",
+  fileType: "PDF",
+  uploadDate: "2026-06-16",
+  contributorName: "Nitara Singh",
+  downloadsCount: 0,
+  likes: 0,
+  status: "approved",
+  fileSize: "1 MB",
+  fileUrl: "/resources/atoms-elements-and-compounds-handwritten-notes.pdf",
+  comments: []
+},
+{
+  id: "res-11",
+  title: "Forces And Laws Of Motion",
+  country: "India",
+  curriculum: "CBSE",
+  grade: "Class 9",
+  subject: "Physics",
+  topic: "Force",
+  description: "Newton's Laws of Motion||Inertia||Momentum",
+  fileType: "DOC",
+  uploadDate: "2026-06-16",
+  contributorName: "Arjun Singh",
+  downloadsCount: 0,
+  likes: 0,
+  status: "approved",
+  fileSize: "500 KB",
+  fileUrl: "/resources/Force-and-Laws-of-Motion.docx",
+  comments: []
+}
 ];
 
 const initialAnnouncements: Announcement[] = [

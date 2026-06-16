@@ -51,23 +51,35 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
 
   const isFavorited = savedResources.includes(resource.id);
 
-  const handleDownload = () => {
-    recordDownload(resource.id);
-    // Simulate file download
-    const filename = `${resource.title.toLowerCase().replace(/\s+/g, "_")}.${
-      resource.fileType === "PPT" ? "pptx" : resource.fileType === "DOC" ? "docx" : "pdf"
-    }`;
-    const blob = new Blob([`Simulated content for ${resource.title}`], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
+const handleDownload = () => {
+  recordDownload(resource.id);
+
+  if (resource.fileUrl) {
     const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
+    a.href = resource.fileUrl;
+    a.download = resource.fileUrl.split("/").pop() || "resource";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
     alert(`Starting download of ${resource.title} (${resource.fileSize})...`);
-  };
+    return;
+  }
+
+  // Simulate file download
+  const filename = `${resource.title.toLowerCase().replace(/\s+/g, "_")}.${
+    resource.fileType === "PPT" ? "pptx" : resource.fileType === "DOC" ? "docx" : "pdf"
+  }`;
+  const blob = new Blob([`Simulated content for ${resource.title}`], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert(`Starting download of ${resource.title} (${resource.fileSize})...`);
+};
 
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();

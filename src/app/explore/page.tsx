@@ -96,27 +96,37 @@ function ExploreContent() {
 
     return true;
   });
+const handleDownload = (e: React.MouseEvent, res: Resource) => {
+  e.stopPropagation();
+  e.preventDefault();
+  recordDownload(res.id);
 
-  const handleDownload = (e: React.MouseEvent, res: Resource) => {
-    e.stopPropagation();
-    e.preventDefault();
-    recordDownload(res.id);
-
-    // Simulate file download
-    const filename = `${res.title.toLowerCase().replace(/\s+/g, "_")}.${
-      res.fileType === "PPT" ? "pptx" : res.fileType === "DOC" ? "docx" : "pdf"
-    }`;
-    const blob = new Blob([`Simulated content for ${res.title}`], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
+  if (res.fileUrl) {
     const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
+    a.href = res.fileUrl;
+    a.download = res.fileUrl.split("/").pop() || "resource";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
     addToast(`Downloading "${res.title}" (${res.fileSize})`, "download");
-  };
+    return;
+  }
+
+  // Simulate file download
+  const filename = `${res.title.toLowerCase().replace(/\s+/g, "_")}.${
+    res.fileType === "PPT" ? "pptx" : res.fileType === "DOC" ? "docx" : "pdf"
+  }`;
+  const blob = new Blob([`Simulated content for ${res.title}`], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  addToast(`Downloading "${res.title}" (${res.fileSize})`, "download");
+};
 
 
   // Curricula available for selected country

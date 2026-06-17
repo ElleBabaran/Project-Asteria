@@ -124,7 +124,7 @@ export default function Navbar() {
       {/* Mobile Drawer — animated slide-down */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-out md:hidden ${
-          open ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+          open ? "max-h-screen opacity-100 pointer-events-auto" : "max-h-0 opacity-0 pointer-events-none"
         }`}
         aria-hidden={!open}
       >

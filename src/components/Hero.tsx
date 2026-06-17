@@ -10,32 +10,35 @@ const catalogCards = [
     country: "India",
     path: "CBSE · Class 8 · Science",
     topic: "Crop Production and Management",
-    rot: "-14deg",
-    rotFrom: "-20deg",
+    rot: "-12deg",
+    rotFrom: "-25deg",
     color: "bg-leaf-light",
     delay: "0.1s",
-    topOffset: "80px",   // bottom-most in the stack
+    topOffset: "140px",
+    leftOffset: "-30px",
   },
   {
     country: "United States",
     path: "Common Core · Grade 8 · Math",
     topic: "Linear Equations",
-    rot: "2deg",
-    rotFrom: "-2deg",
+    rot: "4deg",
+    rotFrom: "0deg",
     color: "bg-blush-light",
     delay: "0.28s",
     drift: true,
-    topOffset: "40px",   // middle card
+    topOffset: "70px",
+    leftOffset: "0px",
   },
   {
     country: "United Kingdom",
     path: "GCSE · Biology",
     topic: "Cell Structure",
-    rot: "16deg",
-    rotFrom: "22deg",
+    rot: "18deg",
+    rotFrom: "30deg",
     color: "bg-butter-light",
     delay: "0.46s",
-    topOffset: "60px",   // slightly offset from middle
+    topOffset: "0px",
+    leftOffset: "30px",
   },
 ];
 
@@ -133,7 +136,7 @@ export default function Hero() {
                 {
                   "--rot-from": card.rotFrom,
                   "--rot-to": card.rot,
-                  transform: `translateX(-50%) rotate(${card.rot})`,
+                  transform: `translateX(calc(-50% + ${card.leftOffset})) rotate(${card.rot})`,
                   top: card.topOffset,
                   zIndex: i,
                   animationDelay: card.delay,

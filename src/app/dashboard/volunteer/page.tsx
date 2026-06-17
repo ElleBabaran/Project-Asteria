@@ -23,6 +23,8 @@ export default function VolunteerDashboard() {
   const [description, setDescription] = useState("");
   const [fileType, setFileType] = useState<"PDF" | "PPT" | "DOC" | "Image" | "Worksheet">("PDF");
   const [fileSize, setFileSize] = useState("2.5 MB");
+  const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fallback if not logged in as Volunteer
   if (!user || user.role !== "volunteer") {
@@ -76,15 +78,29 @@ export default function VolunteerDashboard() {
     });
   });
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setTitle("");
+    setCountry("");
+    setCurriculum("");
+    setGrade("");
+    setSubject("");
+    setTopic("");
+    setDescription("");
+    setFileType("PDF");
+    setFile(null);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !country || !curriculum || !grade || !subject || !topic || !description) {
-      alert("Please fill in all required fields.");
+    if (!title || !country || !curriculum || !grade || !subject || !topic || !description || (!file && !editingResId)) {
+      alert("Please fill in all required fields and select a file.");
       return;
     }
 
+    setIsSubmitting(true);
+
     if (editingResId) {
-      // Edit resource
+      // Edit resource (Local state fallback since editing DB isn't built yet)
       editResource(editingResId, {
         title,
         country,
@@ -94,36 +110,52 @@ export default function VolunteerDashboard() {
         topic,
         description,
         fileType,
-        fileSize,
+        fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
       });
       alert("Resource updated successfully! Resubmitted for Admin review.");
       setEditingResId(null);
+      resetForm();
+      setIsSubmitting(false);
     } else {
-      // Add resource
-      addResource({
-        title,
-        country,
-        curriculum,
-        grade,
-        subject,
-        topic,
-        description,
-        fileType,
-        fileSize,
-        contributorName: user.name,
-      });
-      alert("Resource uploaded successfully! Submitted for Admin review.");
-    }
+      // REAL DB SUBMISSION
+      try {
+        const formData = new FormData();
+        if (file) formData.append("file", file);
+        formData.append("title", title);
+        formData.append("description", description);
+        formData.append("type", fileType);
+        formData.append("country", country);
+        formData.append("curriculum", curriculum);
+        formData.append("grade", grade);
+        formData.append("subject", subject);
+        formData.append("submitterEmail", user.email);
 
-    // Reset Form
-    setTitle("");
-    setCountry("");
-    setCurriculum("");
-    setGrade("");
-    setSubject("");
-    setTopic("");
-    setDescription("");
-    setFileType("PDF");
+        const res = await fetch("/api/resources", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          alert("Resource uploaded successfully! Saved to Database.");
+          resetForm();
+          
+          // Also add to local UI state so it shows up instantly without full page refresh
+          addResource({
+            title, country, curriculum, grade, subject, topic, description, fileType,
+            fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
+            contributorName: user.name,
+          });
+        } else {
+          const data = await res.json();
+          alert(`Error: ${data.error}`);
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Failed to upload resource.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
   };
 
   const handleEditClick = (res: Resource) => {
@@ -148,14 +180,7 @@ export default function VolunteerDashboard() {
 
   const cancelEdit = () => {
     setEditingResId(null);
-    setTitle("");
-    setCountry("");
-    setCurriculum("");
-    setGrade("");
-    setSubject("");
-    setTopic("");
-    setDescription("");
-    setFileType("PDF");
+    resetForm();
   };
 
   const availableCurricula = country ? categories.curricula[country] || [] : [];
@@ -348,27 +373,34 @@ export default function VolunteerDashboard() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-sage-dark">File Upload Simulation</label>
-                <div className="border border-dashed border-sage-dark/25 rounded-card p-4 bg-cream/10 text-center">
-                  <Upload size={24} className="mx-auto text-sage/60 mb-1" />
-                  <span className="text-[10px] text-ink/50 font-mono block">Simulation selects a dummy file: <strong>{title || "document"}.{fileType.toLowerCase()}</strong></span>
-                  <input
-                    type="text"
-                    value={fileSize}
-                    onChange={(e) => setFileSize(e.target.value)}
-                    placeholder="Size e.g. 1.8 MB"
-                    className="mt-2 text-center text-[10px] bg-paper px-2 py-0.5 border rounded"
-                    title="Mock file size"
+                <label className="text-xs font-semibold text-sage-dark">Resource File *</label>
+                <div className="border border-dashed border-sage-dark/25 rounded-card p-4 bg-cream/10 text-center relative hover:bg-cream/30 transition-colors">
+                  <input 
+                    type="file" 
+                    onChange={(e) => e.target.files && setFile(e.target.files[0])}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    required={!editingResId}
                   />
+                  <Upload size={24} className="mx-auto text-sage mb-2" />
+                  {file ? (
+                    <span className="text-[11px] text-sage-dark font-medium block">
+                      Selected: <strong>{file.name}</strong> ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-ink/60 font-mono block">
+                      Click or drag and drop to upload your file
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="flex gap-2.5 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow hover:bg-sage transition-all"
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow hover:bg-sage transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {editingResId ? "Save Changes & Submit" : "Submit Material for Approval"}
+                  {isSubmitting ? "Uploading to Database..." : (editingResId ? "Save Changes & Submit" : "Submit Material for Approval")}
                 </button>
                 {editingResId && (
                   <button

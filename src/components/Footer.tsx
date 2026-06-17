@@ -4,40 +4,41 @@ import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/context/AppContext";
 
-const columns = [
-  {
-    title: "Library",
-    links: [
-      { label: "Explore resources", href: "/explore" },
-      { label: "Browse by country", href: "/explore?focus=country" },
-      { label: "Browse by subject", href: "/explore?focus=subject" },
-      { label: "Submit a resource", href: "/dashboard/volunteer" },
-    ],
-  },
-  {
-    title: "Get involved",
-    links: [
-      { label: "Become a volunteer", href: "/volunteer-apply" },
-      { label: "Volunteer dashboard", href: "/dashboard/volunteer" },
-      { label: "Partner with us", href: "/partner" },
-      { label: "Contact support", href: "/contact" },
-    ],
-  },
-  {
-    title: "About",
-    links: [
-      { label: "Our mission", href: "/about#mission" },
-      { label: "Meet the team", href: "/about#team" },
-      { label: "Contact us", href: "/contact" },
-      { label: "Privacy policy", href: "/privacy" },
-      { label: "Terms of use", href: "/terms" },
-    ],
-  },
-];
-
 export default function Footer() {
-  const { resources, categories } = useApp();
+  const { user, resources, categories } = useApp();
   const approvedCount = resources.filter(r => r.status === "approved").length;
+
+  const columns = [
+    {
+      title: "Library",
+      links: [
+        { label: "Explore resources", href: "/explore", show: true },
+        { label: "Browse by country", href: "/explore?focus=country", show: true },
+        { label: "Browse by subject", href: "/explore?focus=subject", show: true },
+        { label: "Submit a resource", href: "/dashboard/volunteer", show: user?.role === "volunteer" || user?.role === "admin" },
+      ].filter(l => l.show),
+    },
+    {
+      title: "Get involved",
+      links: [
+        { label: "Become a volunteer", href: "/volunteer-apply", show: !user || user?.role === "student" || user?.role === "guest" },
+        { label: "Volunteer dashboard", href: "/dashboard/volunteer", show: user?.role === "volunteer" || user?.role === "admin" },
+        { label: "Admin dashboard", href: "/dashboard/admin", show: user?.role === "admin" },
+        { label: "Partner with us", href: "/partner", show: true },
+        { label: "Contact support", href: "/contact", show: true },
+      ].filter(l => l.show),
+    },
+    {
+      title: "About",
+      links: [
+        { label: "Our mission", href: "/about#mission", show: true },
+        { label: "Meet the team", href: "/about#team", show: true },
+        { label: "Contact us", href: "/contact", show: true },
+        { label: "Privacy policy", href: "/privacy", show: true },
+        { label: "Terms of use", href: "/terms", show: true },
+      ].filter(l => l.show),
+    },
+  ];
 
   return (
     <footer id="about" className="border-t border-sage-dark/10 bg-paper px-6 py-16 lg:px-10 font-body">

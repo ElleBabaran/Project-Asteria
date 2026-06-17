@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/reports — Submit a resource error report, notify the uploader
 export async function POST(req: NextRequest) {
   try {

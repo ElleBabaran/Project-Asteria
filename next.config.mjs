@@ -4,7 +4,6 @@ const basePath = isGithubActions ? `/${repo}` : '';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   basePath: basePath,
   images: {
     unoptimized: true,

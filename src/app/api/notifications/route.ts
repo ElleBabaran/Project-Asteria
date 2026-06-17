@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/notifications?userId=xxx — Fetch all notifications for a user
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
       take: 30,
     });
 
-    const unreadCount = notifications.filter((n) => !n.isRead).length;
+    const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
     return NextResponse.json({ notifications, unreadCount });
   } catch (error) {

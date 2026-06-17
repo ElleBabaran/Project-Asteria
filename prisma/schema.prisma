@@ -47,8 +47,9 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String?
-  image     String? // Profile picture URL
-  bio       String? // Short bio / about me
+  password  String?  // bcrypt hashed password
+  image     String?  // Profile picture URL
+  bio       String?  // Short bio / about me
   role      Role     @default(STUDENT)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

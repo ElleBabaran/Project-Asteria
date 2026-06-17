@@ -4,49 +4,120 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useApp } from "@/context/AppContext";
-import { BookOpen, Key, Mail, User, Shield, CheckCircle, ArrowRight } from "lucide-react";
+import { BookOpen, Key, Mail, User, CheckCircle, ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+// Password strength checker
+function getPasswordStrength(password: string): { score: number; label: string; color: string } {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
+
+  if (score <= 1) return { score, label: "Very Weak", color: "bg-red-500" };
+  if (score === 2) return { score, label: "Weak", color: "bg-orange-500" };
+  if (score === 3) return { score, label: "Fair", color: "bg-yellow-500" };
+  if (score === 4) return { score, label: "Strong", color: "bg-lime-500" };
+  return { score, label: "Very Strong", color: "bg-green-500" };
+}
 
 export default function LoginPage() {
   const { login } = useApp();
   const router = useRouter();
 
   const [isLoginTab, setIsLoginTab] = useState(true);
-  const [role, setRole] = useState<"student" | "volunteer" | "admin">("student");
-  
-  // Input fields
-  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Verification step mock
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
+  const strength = getPasswordStrength(password);
 
-    if (isLoginTab) {
-      // Login flow
-      login(email, role);
-      alert(`Successfully logged in as ${email.split("@")[0]} (${role})!`);
-      router.push(`/dashboard/${role}`);
-    } else {
-      // Signup flow requires verification
-      if (!name) return;
-      setIsVerifying(true);
+  const passwordRequirements = [
+    { label: "At least 8 characters", met: password.length >= 8 },
+    { label: "Uppercase letter (A-Z)", met: /[A-Z]/.test(password) },
+    { label: "Lowercase letter (a-z)", met: /[a-z]/.test(password) },
+    { label: "Number (0-9)", met: /\d/.test(password) },
+    { label: "Special character (!@#$...)", met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      if (isLoginTab) {
+        // --- Real Login via DB ---
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Login failed.");
+          return;
+        }
+
+        // Login to local context with role from DB
+        login(data.user.email, data.user.role);
+        router.push(`/dashboard/${data.user.role}`);
+      } else {
+        // --- Real Register via DB ---
+        if (!name) {
+          setError("Full name is required.");
+          return;
+        }
+
+        const allMet = passwordRequirements.every((r) => r.met);
+        if (!allMet) {
+          setError("Please meet all password requirements.");
+          return;
+        }
+
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, role: "student" }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Registration failed.");
+          return;
+        }
+
+        // Show verification notice (mock - real email requires Resend/Nodemailer)
+        setIsVerifying(true);
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerifyComplete = () => {
     setIsVerifying(false);
-    login(email, role);
-    alert(`Account verified! Logged in as ${name} (${role}).`);
-    router.push(`/dashboard/${role}`);
-    
-    // Clear fields
+    login(email, "student");
+    router.push("/dashboard/student");
     setEmail("");
     setName("");
+    setPassword("");
+  };
+
+  const switchTab = (toLogin: boolean) => {
+    setIsLoginTab(toLogin);
+    setError("");
     setPassword("");
   };
 
@@ -56,7 +127,7 @@ export default function LoginPage() {
 
       <section className="flex-1 flex items-center justify-center py-16 px-6">
         <div className="w-full max-w-md bg-paper rounded-card border-2 border-sage-dark/8 p-8 shadow-2xl relative overflow-hidden">
-          
+
           {/* Logo brand decoration */}
           <div className="flex flex-col items-center text-center mb-8">
             <span className="flex h-10 w-10 items-center justify-center rounded-card bg-sage text-paper mb-3">
@@ -75,7 +146,7 @@ export default function LoginPage() {
           {/* Tab Selector */}
           <div className="flex border border-sage-dark/10 rounded-card p-1 mb-6 bg-cream/35">
             <button
-              onClick={() => setIsLoginTab(true)}
+              onClick={() => switchTab(true)}
               className={`flex-1 py-2 text-xs font-semibold rounded-card transition-all ${
                 isLoginTab ? "bg-paper text-sage-dark shadow-sm" : "text-ink/50 hover:text-sage-dark"
               }`}
@@ -83,7 +154,7 @@ export default function LoginPage() {
               Sign In
             </button>
             <button
-              onClick={() => setIsLoginTab(false)}
+              onClick={() => switchTab(false)}
               className={`flex-1 py-2 text-xs font-semibold rounded-card transition-all ${
                 !isLoginTab ? "bg-paper text-sage-dark shadow-sm" : "text-ink/50 hover:text-sage-dark"
               }`}
@@ -92,9 +163,17 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-card px-3 py-2.5 mb-4">
+              <AlertCircle size={14} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {/* Name - Register only */}
             {!isLoginTab && (
               <div className="space-y-1">
@@ -105,7 +184,7 @@ export default function LoginPage() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter name"
+                    placeholder="Enter your full name"
                     className="w-full bg-transparent text-xs text-ink placeholder:text-ink/40 focus:outline-none"
                     required
                   />
@@ -135,55 +214,64 @@ export default function LoginPage() {
               <div className="flex items-center gap-2 rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2.5 shadow-inner">
                 <Key size={14} className="text-sage" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full bg-transparent text-xs text-ink placeholder:text-ink/40 focus:outline-none"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-ink/40 hover:text-sage-dark transition-colors"
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
               </div>
-            </div>
 
-            {/* Role select */}
-            <div className="space-y-1.5 pt-2">
-              <label className="text-xs font-semibold text-sage-dark block">Log in Role Mode</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: "student", label: "Student" },
-                  { id: "volunteer", label: "Volunteer" },
-                  { id: "admin", label: "Admin" }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setRole(item.id as any)}
-                    className={`py-2 text-[10px] font-bold rounded-card border transition-all uppercase tracking-wider ${
-                      role === item.id
-                        ? "bg-sage-dark text-paper border-sage-dark"
-                        : "bg-paper text-sage-dark border-sage-dark/15 hover:bg-cream/40"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+              {/* Password strength & requirements (Register only) */}
+              {!isLoginTab && password.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {/* Strength bar */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-sage-dark/10 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+                        style={{ width: `${(strength.score / 5) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-ink/50 w-20 text-right">{strength.label}</span>
+                  </div>
+
+                  {/* Requirements checklist */}
+                  <ul className="space-y-1">
+                    {passwordRequirements.map((req) => (
+                      <li key={req.label} className={`flex items-center gap-1.5 text-[10px] transition-colors ${req.met ? "text-green-600" : "text-ink/50"}`}>
+                        <CheckCircle size={10} className={req.met ? "text-green-500" : "text-ink/20"} />
+                        {req.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Terms Consent - Register only */}
             {!isLoginTab && (
-              <p className="text-[10px] text-ink/50 leading-relaxed pt-2">
-                By checking register, you consent to our privacy terms and agree to verify your school email domain.
+              <p className="text-[10px] text-ink/50 leading-relaxed pt-1">
+                By registering, you consent to our privacy terms. Your account will be created with the <strong>Student</strong> role by default.
               </p>
             )}
 
             {/* Submit */}
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-1.5 rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow-card hover:bg-sage transition-all mt-4"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-1.5 rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow-card hover:bg-sage transition-all mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span>{isLoginTab ? "Sign In to Library" : "Request Registration"}</span>
-              <ArrowRight size={13} />
+              <span>{isLoading ? "Please wait..." : isLoginTab ? "Sign In to Library" : "Create Account"}</span>
+              {!isLoading && <ArrowRight size={13} />}
             </button>
           </form>
 
@@ -191,9 +279,9 @@ export default function LoginPage() {
           {isVerifying && (
             <div className="absolute inset-0 bg-paper/95 flex flex-col items-center justify-center p-6 text-center z-10">
               <Mail className="text-sage animate-pulse mb-3" size={40} />
-              <h3 className="font-display font-semibold text-sage-dark">Email Verification Sent</h3>
+              <h3 className="font-display font-semibold text-sage-dark">Account Created!</h3>
               <p className="text-xs text-ink/65 mt-2 max-w-xs leading-relaxed">
-                We sent a simulation code to <strong className="font-medium text-ink">{email}</strong>. Check your inbox and click the button below to confirm verification.
+                Your account has been created for <strong className="font-medium text-ink">{email}</strong>. Click below to continue to your dashboard.
               </p>
 
               <div className="mt-6 flex flex-col gap-2 w-full">
@@ -202,13 +290,13 @@ export default function LoginPage() {
                   className="w-full flex items-center justify-center gap-1 rounded-card bg-leaf-light px-4 py-2.5 text-xs font-semibold text-sage-dark hover:bg-leaf shadow-sm"
                 >
                   <CheckCircle size={13} />
-                  <span>Verify Email & Login</span>
+                  <span>Go to Dashboard</span>
                 </button>
                 <button
                   onClick={() => setIsVerifying(false)}
                   className="text-xs text-ink/50 font-semibold py-1.5 hover:text-ink"
                 >
-                  Cancel
+                  Back
                 </button>
               </div>
             </div>

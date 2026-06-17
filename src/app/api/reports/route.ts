@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the report + notification for the uploader in a single transaction
-    const report = await prisma.$transaction(async (tx) => {
+    const report = await (prisma as any).$transaction(async (tx: any) => {
       const newReport = await tx.report.create({
         data: {
           description,

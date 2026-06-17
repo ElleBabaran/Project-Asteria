@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"student" | "volunteer">("student");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -86,7 +87,7 @@ export default function LoginPage() {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password, role: "student" }),
+          body: JSON.stringify({ name, email, password, role }),
         });
 
         const data = await res.json();
@@ -108,17 +109,19 @@ export default function LoginPage() {
 
   const handleVerifyComplete = () => {
     setIsVerifying(false);
-    login(email, "student");
-    router.push("/dashboard/student");
+    login(email, role);
+    router.push(`/dashboard/${role}`);
     setEmail("");
     setName("");
     setPassword("");
+    setRole("student");
   };
 
   const switchTab = (toLogin: boolean) => {
     setIsLoginTab(toLogin);
     setError("");
     setPassword("");
+    setRole("student");
   };
 
   return (
@@ -257,10 +260,37 @@ export default function LoginPage() {
               )}
             </div>
 
+            {/* Role Selector - Register only */}
+            {!isLoginTab && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-sage-dark block">I am joining as a...</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "student", label: "👨‍🎓 Student", desc: "Browse & save resources" },
+                    { id: "volunteer", label: "✍️ Volunteer", desc: "Upload & share materials" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setRole(item.id as any)}
+                      className={`flex flex-col items-start p-3 rounded-card border-2 text-left transition-all ${
+                        role === item.id
+                          ? "border-sage-dark bg-sage-dark/5 text-sage-dark"
+                          : "border-sage-dark/10 bg-cream/20 text-ink/60 hover:border-sage-dark/30"
+                      }`}
+                    >
+                      <span className="text-xs font-bold">{item.label}</span>
+                      <span className="text-[10px] mt-0.5 opacity-70">{item.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Terms Consent - Register only */}
             {!isLoginTab && (
               <p className="text-[10px] text-ink/50 leading-relaxed pt-1">
-                By registering, you consent to our privacy terms. Your account will be created with the <strong>Student</strong> role by default.
+                By registering, you consent to our privacy terms. Your account will be created with the <strong className="text-sage-dark">{role === "volunteer" ? "Volunteer" : "Student"}</strong> role — {role === "volunteer" ? "you can upload and manage study materials." : "you can browse, save, and review study materials."}
               </p>
             )}
 

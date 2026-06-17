@@ -1,13 +1,145 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  VOLUNTEER
+  ADMIN
+}
+
+enum ResourceType {
+  STUDY_GUIDE
+  WORKSHEET
+  PAST_PAPER
+  OTHER
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  REPORT // Someone reported an error on your resource
+  APPROVAL // Your resource was approved
+  REJECTION // Your resource was rejected
+  VOLUNTEER_APPROVED // Your volunteer application was approved
+  VOLUNTEER_REJECTED // Your volunteer application was rejected
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  image     String? // Profile picture URL
+  bio       String? // Short bio / about me
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  submissions   Resource[]     @relation("UserSubmissions")
+  favorites     Resource[]     @relation("UserFavorites")
+  notifications Notification[]
+  reports       Report[]       @relation("ReportedBy")
+}
+
+model Country {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  code        String       @unique // e.g., US, UK, IN
+  curriculums Curriculum[]
+}
+
+model Curriculum {
+  id        String  @id @default(uuid())
+  name      String // e.g., CBSE, Common Core, GCSE
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
+  grades    Grade[]
+}
+
+model Grade {
+  id           String     @id @default(uuid())
+  name         String // e.g., Grade 10, Year 11
+  curriculumId String
+  curriculum   Curriculum @relation(fields: [curriculumId], references: [id])
+  subjects     Subject[]
+}
+
+model Subject {
+  id        String     @id @default(uuid())
+  name      String // e.g., Mathematics, Physics
+  gradeId   String
+  grade     Grade      @relation(fields: [gradeId], references: [id])
+  resources Resource[]
+}
+
+model Resource {
+  id          String           @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String // Link to the uploaded file/document
+  type        ResourceType     @default(OTHER)
+  status      SubmissionStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  submitterId String
+  submitter   User     @relation("UserSubmissions", fields: [submitterId], references: [id])
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  favoritedBy User[]   @relation("UserFavorites")
+  reports     Report[]
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  description String
+  status      ReportStatus @default(OPEN)
+  createdAt   DateTime     @default(now())
+
+  // Who reported it
+  reporterId String?
+  reporter   User?   @relation("ReportedBy", fields: [reporterId], references: [id])
+
+  // Which resource was reported
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id])
+
+  // Resulting notification for the uploader
+  notification Notification?
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Who receives this notification
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Optional link to the report that triggered this
+  reportId String? @unique
+  report   Report? @relation(fields: [reportId], references: [id])
 }

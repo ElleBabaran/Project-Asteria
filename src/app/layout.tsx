@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import ScrollReveal from "@/components/ScrollReveal";
 import { AppContextProvider } from "@/context/AppContext";
-import DevSandbox from "@/components/DevSandbox";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,7 +28,6 @@ export default function RootLayout({
         <AppContextProvider>
           <ScrollReveal />
           {children}
-          <DevSandbox />
         </AppContextProvider>
       </body>
     </html>

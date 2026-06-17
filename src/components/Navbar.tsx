@@ -5,6 +5,7 @@ import { BookOpen, Menu, X, LogOut, User as UserIcon, Home } from "lucide-react"
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 
 const navLinks = [
   { label: "Explore", href: "/explore" },
@@ -72,6 +73,7 @@ export default function Navbar() {
         <div className="hidden items-center gap-4 md:flex">
           {user ? (
             <div className="flex items-center gap-4">
+              <NotificationBell userId={user.email} />
               <Link
                 href={getDashboardHref()}
                 className="flex items-center gap-1.5 text-sm font-semibold text-sage-dark transition-colors hover:text-sage"
@@ -152,6 +154,10 @@ export default function Navbar() {
             <div className="mt-2 flex flex-col gap-3 border-t border-sage-dark/10 pt-4">
               {user ? (
                 <>
+                  <div className="flex items-center gap-2">
+                    <NotificationBell userId={user.email} />
+                    <span className="text-xs text-ink/40">Notifications</span>
+                  </div>
                   <Link
                     href={getDashboardHref()}
                     onClick={() => setOpen(false)}

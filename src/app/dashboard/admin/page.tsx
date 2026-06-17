@@ -23,7 +23,6 @@ export default function AdminDashboard() {
     categories,
     addCategory,
     analytics,
-    login,
     volunteerApplications,
     approveVolunteerApplication,
     rejectVolunteerApplication
@@ -54,19 +53,13 @@ export default function AdminDashboard() {
       <main className="bg-cream min-h-screen flex flex-col font-body">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <Shield size={48} className="text-sage-dark/60 mb-4 animate-pulse" />
+          <Shield size={48} className="text-sage-dark/30 mb-4" />
           <h2 className="font-display text-2xl font-semibold text-sage-dark">Administrator Dashboard</h2>
           <p className="mt-2 text-sm text-ink/65 max-w-sm">
-            To view this dashboard, please log in as an Administrator or switch to the admin role using the Sandbox controller below.
+            This area is restricted to administrators. Please sign in with an admin account to continue.
           </p>
-          <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => login("admin@astera.org", "admin")}
-              className="rounded-card bg-sage-dark text-paper px-6 py-2.5 text-xs font-semibold shadow"
-            >
-              Simulate Admin Login
-            </button>
-            <Link href="/login" className="rounded-card border-2 border-sage-dark/15 px-6 py-2.5 text-xs font-semibold text-sage-dark">
+          <div className="mt-6">
+            <Link href="/login" className="rounded-card bg-sage-dark text-paper px-6 py-2.5 text-xs font-semibold shadow">
               Go to Login Page
             </Link>
           </div>

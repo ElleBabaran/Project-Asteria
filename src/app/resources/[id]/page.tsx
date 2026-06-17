@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useApp, Resource } from "@/context/AppContext";
-import { ArrowLeft, Download, Heart, Star, Calendar, User, FileText, AlertTriangle, Send, CheckCircle } from "lucide-react";
+import { ArrowLeft, Download, Heart, Star, Calendar, User, FileText, AlertTriangle, Send, CheckCircle, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ResourceDetailsPage({ params }: { params: { id: string } }) {
   const { id } = params;
-  const { resources, savedResources, toggleFavorite, recordDownload, recordView, addComment, reportBrokenLink } = useApp();
+  const { user, resources, savedResources, toggleFavorite, recordDownload, recordView, addComment, reportBrokenLink } = useApp();
   const router = useRouter();
 
   // Find target resource
@@ -22,6 +22,9 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportText, setReportText] = useState("");
   const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  // Guest login prompt
+  const [guestPrompt, setGuestPrompt] = useState<string | null>(null);
 
   // Record view on mount
   useEffect(() => {
@@ -83,6 +86,7 @@ const handleDownload = () => {
 
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) { setGuestPrompt("leave a review"); return; }
     if (!commentText.trim()) return;
     addComment(resource.id, commentText.trim(), rating);
     setCommentText("");
@@ -90,16 +94,32 @@ const handleDownload = () => {
     alert("Thank you for your feedback!");
   };
 
-  const handleReportSubmit = (e: React.FormEvent) => {
+  const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportText.trim()) return;
-    reportBrokenLink(resource.id, reportText.trim());
+    setReportLoading(true);
+    try {
+      // Try to save to real DB if resource has a real UUID id
+      await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resourceId: resource.id,
+          description: reportText.trim(),
+          reporterEmail: user?.email ?? null,
+        }),
+      });
+    } catch (_) {
+      // fallback: save locally via context
+      reportBrokenLink(resource.id, reportText.trim());
+    }
     setReportSubmitted(true);
     setReportText("");
     setTimeout(() => {
       setIsReportModalOpen(false);
       setReportSubmitted(false);
     }, 2000);
+    setReportLoading(false);
   };
 
   // Compute rating average
@@ -137,7 +157,10 @@ const handleDownload = () => {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => toggleFavorite(resource.id)}
+                    onClick={() => {
+                      if (!user) { setGuestPrompt("save this resource to your favorites"); return; }
+                      toggleFavorite(resource.id);
+                    }}
                     className="flex items-center gap-1.5 rounded-card border border-sage-dark/15 px-3 py-1.5 text-xs font-semibold text-sage-dark transition-colors hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600"
                   >
                     <Heart size={14} className={isFavorited ? "fill-rose-500 text-rose-500" : ""} />
@@ -360,7 +383,38 @@ const handleDownload = () => {
         </div>
       </section>
 
+      {/* Guest Login Prompt Modal */}
+      {guestPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-paper rounded-card border-2 border-sage-dark/15 p-6 shadow-2xl text-center space-y-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sage-dark/8 mx-auto">
+              <LogIn size={22} className="text-sage-dark" />
+            </div>
+            <h3 className="font-display text-lg font-semibold text-sage-dark">Sign in required</h3>
+            <p className="text-xs text-ink/65 leading-relaxed">
+              You need to be logged in to {guestPrompt}. It&apos;s free and takes just a moment!
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Link
+                href="/login"
+                className="w-full flex items-center justify-center gap-2 rounded-card bg-sage-dark text-paper py-3 text-xs font-semibold shadow hover:bg-sage transition-colors"
+              >
+                <LogIn size={13} />
+                Sign In or Register
+              </Link>
+              <button
+                onClick={() => setGuestPrompt(null)}
+                className="text-xs text-ink/50 font-semibold py-1.5 hover:text-ink"
+              >
+                Continue as Guest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Report Modal */}
+
       {isReportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-md bg-paper rounded-card border-2 border-sage-dark/15 p-6 shadow-2xl">
@@ -400,9 +454,10 @@ const handleDownload = () => {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-card bg-rose-600 text-paper px-4 py-2 text-xs font-semibold shadow hover:bg-rose-700"
+                    disabled={reportLoading}
+                    className="rounded-card bg-rose-600 text-paper px-4 py-2 text-xs font-semibold shadow hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Submit Report
+                    {reportLoading ? "Submitting…" : "Submit Report"}
                   </button>
                 </div>
               </form>

@@ -46,6 +46,8 @@ export interface User {
   name: string;
   email: string;
   role: "student" | "volunteer" | "admin" | "guest";
+  image?: string;
+  bio?: string;
 }
 
 export interface Announcement {
@@ -72,6 +74,7 @@ interface AppContextType {
   user: User | null;
   login: (email: string, role: "student" | "volunteer" | "admin") => void;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
   resources: Resource[];
   addResource: (resource: Omit<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments">) => void;
   updateResourceStatus: (id: string, status: "approved" | "pending" | "rejected", reason?: string) => void;
@@ -436,6 +439,13 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    if (!user) return;
+    const nextUser = { ...user, ...updates };
+    setUser(nextUser);
+    saveToLocal("astera_user", nextUser);
+  };
+
   const addResource = (res: Omit<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments">) => {
     const newRes: Resource = {
       ...res,
@@ -640,6 +650,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         user,
         login,
         logout,
+        updateUser,
         resources,
         addResource,
         updateResourceStatus,

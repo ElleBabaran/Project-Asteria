@@ -4,7 +4,7 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useApp } from "@/context/AppContext";
-import { BookOpen, Key, Mail, User, Shield, Info, CheckCircle, ArrowRight } from "lucide-react";
+import { BookOpen, Key, Mail, User, Shield, CheckCircle, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -186,14 +186,6 @@ export default function LoginPage() {
               <ArrowRight size={13} />
             </button>
           </form>
-
-          {/* Dev Sandbox Help Notice */}
-          <div className="mt-6 border-t border-sage-dark/10 pt-4 flex gap-2 items-start text-[10px] text-ink/50 bg-cream/10 p-2.5 rounded-card">
-            <Info size={14} className="shrink-0 text-sage mt-0.5" />
-            <span>
-              <strong>Note:</strong> You can skip verification or login steps by directly using the floating <strong>Dev Sandbox</strong> controller at the bottom-right of the window.
-            </span>
-          </div>
 
           {/* Verification Dialog Box */}
           {isVerifying && (

@@ -11,14 +11,37 @@ export default function ContactPage() {
   const [topic, setTopic] = useState("general");
   const [message, setMessage] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) {
       alert("Please fill in all required fields.");
       return;
     }
-    setIsSubmitted(true);
+
+    setIsSending(true);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, topic, message }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to send message. Please try again.");
+        return;
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("[contact submit]", error);
+      alert("Unable to send message. Please check your connection and try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -130,10 +153,11 @@ export default function ContactPage() {
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-1.5 rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow hover:bg-sage transition-all pt-2"
+                disabled={isSending}
+                className="w-full flex items-center justify-center gap-1.5 rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow hover:bg-sage transition-all pt-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send size={12} />
-                <span>Send Support Ticket</span>
+                <span>{isSending ? "Sending..." : "Send Support Ticket"}</span>
               </button>
             </form>
           )}

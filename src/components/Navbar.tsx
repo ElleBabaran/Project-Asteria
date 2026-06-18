@@ -73,7 +73,7 @@ export default function Navbar() {
         <div className="hidden items-center gap-4 md:flex">
           {user ? (
             <div className="flex items-center gap-4">
-              <NotificationBell userId={user.email} />
+              <NotificationBell userId={user.id} />
               <Link
                 href={getDashboardHref()}
                 className="flex items-center gap-1.5 text-sm font-semibold text-sage-dark transition-colors hover:text-sage"

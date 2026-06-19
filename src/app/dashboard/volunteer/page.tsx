@@ -39,7 +39,7 @@ export default function VolunteerDashboard() {
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => login("chloe@astera.org", "volunteer")}
+              onClick={() => login("volunteer-chloe", "Chloe Patel", "chloe@astera.org", "volunteer")}
               className="rounded-card bg-sage-dark text-paper px-6 py-2.5 text-xs font-semibold shadow"
             >
               Simulate Volunteer Login

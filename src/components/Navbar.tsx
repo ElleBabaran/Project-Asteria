@@ -37,7 +37,10 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-sage-dark/10 bg-cream/90 backdrop-blur-md">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
-        <Link href="/" className="group flex items-center gap-2.5">
+        <Link
+          href="/"
+          className="group flex items-center gap-2.5"
+        >
           <span className="flex h-9 w-9 items-center justify-center rounded-card bg-sage text-paper transition-transform duration-300 group-hover:rotate-6">
             <BookOpen size={18} strokeWidth={2.25} />
           </span>
@@ -73,7 +76,7 @@ export default function Navbar() {
         <div className="hidden items-center gap-4 md:flex">
           {user ? (
             <div className="flex items-center gap-4">
-              <NotificationBell userId={user.email} />
+              <NotificationBell userId={user.id} />
               <Link
                 href={getDashboardHref()}
                 className="flex items-center gap-1.5 text-sm font-semibold text-sage-dark transition-colors hover:text-sage"

@@ -15,7 +15,12 @@ export default function DevSandbox() {
       logout();
       router.push("/");
     } else {
-      login(`${role}@astera.org`, role);
+      login(
+        `${role}-${Date.now()}`,
+        `${role.charAt(0).toUpperCase()}${role.slice(1)}`,
+        `${role}@astera.org`,
+        role
+      );
       router.push(`/dashboard/${role}`);
     }
   };

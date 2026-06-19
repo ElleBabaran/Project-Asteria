@@ -158,31 +158,94 @@ export default function NotebookCard({
   return (
     <div className="group flex flex-col gap-3">
       {/* ── Notebook Cover ── */}
-      <Link
-        href={`/resources/${resource.id}`}
-        className="relative block overflow-hidden rounded-[0.65rem] shadow-[0_4px_0_0_rgba(0,0,0,0.12),0_8px_32px_-8px_rgba(0,0,0,0.22)] transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-[0_8px_0_0_rgba(0,0,0,0.10),0_20px_40px_-8px_rgba(0,0,0,0.28)]"
-        style={{ aspectRatio: "3/4" }}
-        aria-label={`View ${resource.title}`}
-      >
-        {/* Cover background */}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: design.bg, ...pat }}
-        />
+      <div className="relative">
+        <Link
+          href={`/resources/${resource.id}`}
+          className="relative block overflow-hidden rounded-[0.65rem] shadow-[0_4px_0_0_rgba(0,0,0,0.12),0_8px_32px_-8px_rgba(0,0,0,0.22)] transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-[0_8px_0_0_rgba(0,0,0,0.10),0_20px_40px_-8px_rgba(0,0,0,0.28)]"
+          style={{ aspectRatio: "3/4" }}
+          aria-label={`View ${resource.title}`}
+        >
+          {/* Cover background */}
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: design.bg, ...pat }}
+          />
 
-        {/* Spine strip on the left */}
-        <div
-          className="absolute left-0 top-0 bottom-0 w-4"
-          style={{ backgroundColor: design.spineBg }}
-        />
-        {/* Spine highlight */}
-        <div className="absolute left-4 top-0 bottom-0 w-px bg-white/20" />
+          {/* Spine strip on the left */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-4"
+            style={{ backgroundColor: design.spineBg }}
+          />
+          {/* Spine highlight */}
+          <div className="absolute left-4 top-0 bottom-0 w-px bg-white/20" />
 
-        {/* Favorite button */}
+          {/* Composition label */}
+          <div className="absolute inset-0 flex items-center justify-center px-7">
+            <div
+              className="w-full rounded-[0.35rem] px-4 py-3.5 shadow-sm"
+              style={{
+                backgroundColor: design.labelBg,
+                border: `1.5px solid ${design.labelBorder}`,
+              }}
+            >
+              {/* Header row */}
+              <p
+                className="text-center font-mono text-[7px] font-bold uppercase tracking-[0.22em] opacity-50"
+                style={{ color: design.textDark ? "#2E3B36" : "#2E3B36" }}
+              >
+                Composition Notebook
+              </p>
+              {/* Rule */}
+              <div
+                className="my-2 h-px opacity-25"
+                style={{ backgroundColor: design.labelBorder }}
+              />
+              {/* Subject info */}
+              <p
+                className="text-center font-mono text-[8px] uppercase tracking-[0.16em] opacity-60"
+                style={{ color: "#2E3B36" }}
+              >
+                {resource.country}
+              </p>
+              <p
+                className="mt-1 text-center font-display text-xs font-semibold leading-tight"
+                style={{ color: "#2E3B36" }}
+              >
+                {resource.grade}
+              </p>
+              <p
+                className="mt-0.5 text-center font-mono text-[8px] opacity-50"
+                style={{ color: "#2E3B36" }}
+              >
+                {resource.curriculum} · {resource.subject}
+              </p>
+              {/* Bottom rule */}
+              <div
+                className="mt-2 h-px opacity-25"
+                style={{ backgroundColor: design.labelBorder }}
+              />
+            </div>
+          </div>
+
+          {/* File type badge — bottom right of cover */}
+          <div className="absolute bottom-3 right-3">
+            <span
+              className="rounded px-1.5 py-0.5 font-mono text-[7px] font-bold uppercase tracking-wider"
+              style={{
+                backgroundColor: `${design.spineBg}cc`,
+                color: design.textDark ? "#2E3B36" : "#F7F4ED",
+              }}
+            >
+              {resource.fileType}
+            </span>
+          </div>
+        </Link>
+
         {showFavorite && onFavorite && (
           <button
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               onFavorite(resource.id);
             }}
             className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow transition-all hover:scale-110 active:scale-90"
@@ -195,68 +258,7 @@ export default function NotebookCard({
             />
           </button>
         )}
-
-        {/* Composition label */}
-        <div className="absolute inset-0 flex items-center justify-center px-7">
-          <div
-            className="w-full rounded-[0.35rem] px-4 py-3.5 shadow-sm"
-            style={{
-              backgroundColor: design.labelBg,
-              border: `1.5px solid ${design.labelBorder}`,
-            }}
-          >
-            {/* Header row */}
-            <p
-              className="text-center font-mono text-[7px] font-bold uppercase tracking-[0.22em] opacity-50"
-              style={{ color: design.textDark ? "#2E3B36" : "#2E3B36" }}
-            >
-              Composition Notebook
-            </p>
-            {/* Rule */}
-            <div
-              className="my-2 h-px opacity-25"
-              style={{ backgroundColor: design.labelBorder }}
-            />
-            {/* Subject info */}
-            <p
-              className="text-center font-mono text-[8px] uppercase tracking-[0.16em] opacity-60"
-              style={{ color: "#2E3B36" }}
-            >
-              {resource.country}
-            </p>
-            <p
-              className="mt-1 text-center font-display text-xs font-semibold leading-tight"
-              style={{ color: "#2E3B36" }}
-            >
-              {resource.grade}
-            </p>
-            <p
-              className="mt-0.5 text-center font-mono text-[8px] opacity-50"
-              style={{ color: "#2E3B36" }}
-            >
-              {resource.curriculum} · {resource.subject}
-            </p>
-            {/* Bottom rule */}
-            <div
-              className="mt-2 h-px opacity-25"
-              style={{ backgroundColor: design.labelBorder }}
-            />
-          </div>
-        </div>
-
-        {/* File type badge — bottom right of cover */}
-        <div className="absolute bottom-3 right-3">
-          <span
-            className="rounded px-1.5 py-0.5 font-mono text-[7px] font-bold uppercase tracking-wider"
-            style={{
-              backgroundColor: `${design.spineBg}cc`,
-              color: design.textDark ? "#2E3B36" : "#F7F4ED",
-            }}
-          >
-            {resource.fileType}
-          </span>
-        </div>
-      </Link>
+      </div>
 
       {/* ── Below-cover info ── */}
       <div className="px-0.5">

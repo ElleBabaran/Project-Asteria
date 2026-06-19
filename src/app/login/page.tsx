@@ -36,6 +36,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [pendingUser, setPendingUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    role: "student" | "volunteer" | "admin";
+  } | null>(null);
 
   const strength = getPasswordStrength(password);
 
@@ -68,9 +74,14 @@ export default function LoginPage() {
           return;
         }
 
+        const normalizedRole = (typeof data.user.role === "string"
+          ? data.user.role.toLowerCase()
+          : "student") as "student" | "volunteer" | "admin";
+
         // Login to local context with role from DB
-        login(data.user.email, data.user.role);
-        router.push(`/dashboard/${data.user.role}`);
+        login(data.user.id, data.user.name, data.user.email, normalizedRole);
+        setIsLoading(false);
+        router.push(`/dashboard/${normalizedRole}`);
       } else {
         // --- Real Register via DB ---
         if (!name) {
@@ -97,6 +108,15 @@ export default function LoginPage() {
           return;
         }
 
+        setPendingUser({
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          role: (typeof data.user.role === "string"
+            ? data.user.role.toLowerCase()
+            : "student") as "student" | "volunteer" | "admin",
+        });
+
         // Show verification notice (mock - real email requires Resend/Nodemailer)
         setIsVerifying(true);
       }
@@ -109,12 +129,20 @@ export default function LoginPage() {
 
   const handleVerifyComplete = () => {
     setIsVerifying(false);
-    login(email, role);
-    router.push(`/dashboard/${role}`);
+    if (!pendingUser) {
+      setError("Verification failed. Please log in again.");
+      router.push("/login");
+      return;
+    }
+
+    login(pendingUser.id, pendingUser.name, pendingUser.email, pendingUser.role);
+    setIsLoading(false);
+    router.push(`/dashboard/${pendingUser.role}`);
     setEmail("");
     setName("");
     setPassword("");
     setRole("student");
+    setPendingUser(null);
   };
 
   const switchTab = (toLogin: boolean) => {

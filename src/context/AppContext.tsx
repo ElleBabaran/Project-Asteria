@@ -43,6 +43,7 @@ export interface BrokenLinkReport {
 }
 
 export interface User {
+  id: string;
   name: string;
   email: string;
   role: "student" | "volunteer" | "admin" | "guest";
@@ -72,7 +73,7 @@ export interface VolunteerApplication {
 
 interface AppContextType {
   user: User | null;
-  login: (email: string, role: "student" | "volunteer" | "admin") => void;
+  login: (id: string, name: string, email: string, role: "student" | "volunteer" | "admin") => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   resources: Resource[];
@@ -289,7 +290,7 @@ const initialResources: Resource[] = [
   curriculum: "CBSE",
   grade: "Class 9",
   subject: "Chemistry",
-  topic: "About the Atoms in each and every body and their chemistry with compunds and elemnts ",
+  topic: "About the Atoms in each and every body and their chemistry with compounds and elements ",
   description: "Key Structure of an atom, Difference between molecules and compounds, Practise Questions",
   fileType: "PDF",
   uploadDate: "2026-06-16",
@@ -417,10 +418,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const login = (email: string, role: "student" | "volunteer" | "admin") => {
-    const name = email.split("@")[0];
-    const uppercaseName = name.charAt(0).toUpperCase() + name.slice(1);
-    const newUser: User = { name: uppercaseName, email, role };
+  const login = (id: string, name: string, email: string, role: "student" | "volunteer" | "admin") => {
+    const newUser: User = { id, name, email, role };
     setUser(newUser);
     saveToLocal("astera_user", newUser);
 

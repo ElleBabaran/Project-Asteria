@@ -12,14 +12,37 @@ export default function PartnerPage() {
   const [type, setType] = useState("school");
   const [details, setDetails] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName || !contactName || !email || !details) {
       alert("Please fill in all required fields.");
       return;
     }
-    setIsSubmitted(true);
+
+    setIsSending(true);
+
+    try {
+      const res = await fetch("/api/partner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgName, contactName, email, type, details }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to submit partnership request. Please try again.");
+        return;
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("[partner submit]", error);
+      alert("Unable to submit request. Please check your connection and try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -151,9 +174,10 @@ export default function PartnerPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow hover:bg-sage transition-all"
+                disabled={isSending}
+                className="w-full rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow hover:bg-sage transition-all disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Submit Partnership Request
+                {isSending ? "Sending..." : "Submit Partnership Request"}
               </button>
             </form>
           )}

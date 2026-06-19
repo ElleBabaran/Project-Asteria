@@ -100,7 +100,7 @@ const handleDownload = () => {
     setReportLoading(true);
     try {
       // Try to save to real DB if resource has a real UUID id
-      await fetch("/api/reports", {
+      const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,6 +109,13 @@ const handleDownload = () => {
           reporterEmail: user?.email ?? null,
         }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to submit report." }));
+        alert(data.error || "Failed to submit report. Please try again.");
+        setReportLoading(false);
+        return;
+      }
     } catch (_) {
       // fallback: save locally via context
       reportBrokenLink(resource.id, reportText.trim());
@@ -120,6 +127,14 @@ const handleDownload = () => {
       setReportSubmitted(false);
     }, 2000);
     setReportLoading(false);
+  };
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/explore");
+    }
   };
 
   // Compute rating average
@@ -136,11 +151,15 @@ const handleDownload = () => {
       <Navbar />
 
       <section className="flex-1 mx-auto max-w-6xl w-full px-6 py-8 lg:px-10">
-        {/* Back link */}
-        <Link href="/explore" className="inline-flex items-center gap-1.5 text-sm font-semibold text-sage hover:text-sage-dark mb-6 transition-colors">
+        {/* Back button */}
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-sage hover:text-sage-dark mb-6 transition-colors"
+        >
           <ArrowLeft size={16} />
           <span>Back to library</span>
-        </Link>
+        </button>
 
         {/* Layout Grid */}
         <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -326,6 +345,8 @@ const handleDownload = () => {
                         type="button"
                         onClick={() => setRating(star)}
                         className="text-butter transition-transform hover:scale-110"
+                        aria-label={`Rate ${star} star${star === 1 ? "" : "s"}`}
+                        title={`Rate ${star} star${star === 1 ? "" : "s"}`}
                       >
                         <Star size={18} className={star <= rating ? "fill-butter" : "text-sage-dark/15"} />
                       </button>
@@ -336,13 +357,19 @@ const handleDownload = () => {
                 <div className="flex items-center gap-2 rounded-card border border-sage-dark/10 bg-cream/40 p-2 shimmer-focus">
                   <input
                     type="text"
+                    name="commentText"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Write your feedback..."
                     className="w-full bg-transparent text-xs text-ink placeholder:text-ink/40 focus:outline-none"
                     required
                   />
-                  <button type="submit" className="rounded-card bg-sage-dark p-2 text-paper transition-transform hover:scale-105">
+                  <button
+                    type="submit"
+                    className="rounded-card bg-sage-dark p-2 text-paper transition-transform hover:scale-105"
+                    aria-label="Submit review"
+                    title="Submit review"
+                  >
                     <Send size={12} />
                   </button>
                 </div>
@@ -437,6 +464,7 @@ const handleDownload = () => {
                   Is the download link broken? Are there content inaccuracies or licensing issues? Please describe the issue below:
                 </p>
                 <textarea
+                  name="reportText"
                   value={reportText}
                   onChange={(e) => setReportText(e.target.value)}
                   placeholder="Describe the problem in detail..."

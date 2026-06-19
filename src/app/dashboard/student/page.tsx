@@ -24,7 +24,7 @@ export default function StudentDashboard() {
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => login("sneha@astera.org", "student")}
+              onClick={() => login("student-sneha", "Sneha Patel", "sneha@astera.org", "student")}
               className="rounded-card bg-sage-dark text-paper px-6 py-2.5 text-xs font-semibold shadow"
             >
               Simulate Student Login

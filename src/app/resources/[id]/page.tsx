@@ -129,6 +129,14 @@ const handleDownload = () => {
     setReportLoading(false);
   };
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/explore");
+    }
+  };
+
   // Compute rating average
   const getAverageRating = () => {
     if (resource.comments.length === 0) return 5.0;
@@ -143,11 +151,15 @@ const handleDownload = () => {
       <Navbar />
 
       <section className="flex-1 mx-auto max-w-6xl w-full px-6 py-8 lg:px-10">
-        {/* Back link */}
-        <Link href="/explore" className="inline-flex items-center gap-1.5 text-sm font-semibold text-sage hover:text-sage-dark mb-6 transition-colors">
+        {/* Back button */}
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-sage hover:text-sage-dark mb-6 transition-colors"
+        >
           <ArrowLeft size={16} />
           <span>Back to library</span>
-        </Link>
+        </button>
 
         {/* Layout Grid */}
         <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">

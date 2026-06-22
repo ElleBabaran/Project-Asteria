@@ -51,6 +51,7 @@ model User {
   image     String?  // Profile picture URL
   bio       String?  // Short bio / about me
   role      Role     @default(STUDENT)
+  adminRole String?  // "general" | "tech" | "staff"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

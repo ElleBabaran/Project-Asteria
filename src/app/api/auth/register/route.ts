@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // POST /api/auth/register
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, role } = await req.json();
+    const { name, email, password, role, adminRole } = await req.json();
 
     if (!name || !email || !password || !role) {
       return NextResponse.json({ error: "All fields are required." }, { status: 400 });
@@ -44,12 +44,13 @@ export async function POST(req: NextRequest) {
         email,
         password: hashedPassword,
         role: roleMap[role] ?? "STUDENT",
+        adminRole: role === "admin" ? adminRole : null,
       },
     });
 
     return NextResponse.json({
       success: true,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, adminRole: user.adminRole },
     }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/auth/register]", error);

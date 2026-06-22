@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
         name: user.name,
         email: user.email,
         role: roleMap[user.role] ?? "student",
+        adminRole: user.adminRole,
       },
     });
   } catch (error) {

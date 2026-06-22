@@ -31,7 +31,8 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"student" | "volunteer">("student");
+  const [role, setRole] = useState<"student" | "volunteer" | "admin">("student");
+  const [adminSubRole, setAdminSubRole] = useState<"general" | "tech" | "staff">("general");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -41,6 +42,7 @@ export default function LoginPage() {
     name: string;
     email: string;
     role: "student" | "volunteer" | "admin";
+    adminRole?: "general" | "tech" | "staff";
   } | null>(null);
 
   const strength = getPasswordStrength(password);
@@ -78,8 +80,8 @@ export default function LoginPage() {
           ? data.user.role.toLowerCase()
           : "student") as "student" | "volunteer" | "admin";
 
-        // Login to local context with role from DB
-        login(data.user.id, data.user.name, data.user.email, normalizedRole);
+        // Login to local context with role from DB and adminRole if present
+        login(data.user.id, data.user.name, data.user.email, normalizedRole, data.user.adminRole);
         setIsLoading(false);
         router.push(`/dashboard/${normalizedRole}`);
       } else {
@@ -98,7 +100,13 @@ export default function LoginPage() {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password, role }),
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            role,
+            adminRole: role === "admin" ? adminSubRole : undefined,
+          }),
         });
 
         const data = await res.json();
@@ -115,6 +123,7 @@ export default function LoginPage() {
           role: (typeof data.user.role === "string"
             ? data.user.role.toLowerCase()
             : "student") as "student" | "volunteer" | "admin",
+          adminRole: data.user.adminRole,
         });
 
         // Show verification notice (mock - real email requires Resend/Nodemailer)
@@ -135,13 +144,14 @@ export default function LoginPage() {
       return;
     }
 
-    login(pendingUser.id, pendingUser.name, pendingUser.email, pendingUser.role);
+    login(pendingUser.id, pendingUser.name, pendingUser.email, pendingUser.role, pendingUser.adminRole);
     setIsLoading(false);
     router.push(`/dashboard/${pendingUser.role}`);
     setEmail("");
     setName("");
     setPassword("");
     setRole("student");
+    setAdminSubRole("general");
     setPendingUser(null);
   };
 
@@ -150,6 +160,7 @@ export default function LoginPage() {
     setError("");
     setPassword("");
     setRole("student");
+    setAdminSubRole("general");
   };
 
   return (
@@ -290,35 +301,75 @@ export default function LoginPage() {
 
             {/* Role Selector - Register only */}
             {!isLoginTab && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-sage-dark block">I am joining as a...</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "student", label: "👨‍🎓 Student", desc: "Browse & save resources" },
-                    { id: "volunteer", label: "✍️ Volunteer", desc: "Upload & share materials" },
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setRole(item.id as any)}
-                      className={`flex flex-col items-start p-3 rounded-card border-2 text-left transition-all ${
-                        role === item.id
-                          ? "border-sage-dark bg-sage-dark/5 text-sage-dark"
-                          : "border-sage-dark/10 bg-cream/20 text-ink/60 hover:border-sage-dark/30"
-                      }`}
-                    >
-                      <span className="text-xs font-bold">{item.label}</span>
-                      <span className="text-[10px] mt-0.5 opacity-70">{item.desc}</span>
-                    </button>
-                  ))}
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-sage-dark block">I am joining as a...</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "student", label: "👨‍🎓 Student", desc: "Browse & save" },
+                      { id: "volunteer", label: "✍️ Volunteer", desc: "Upload & share" },
+                      { id: "admin", label: "🛡️ Admin", desc: "Manage platform" },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setRole(item.id as any)}
+                        className={`flex flex-col items-start p-2.5 rounded-card border-2 text-left transition-all ${
+                          role === item.id
+                            ? "border-sage-dark bg-sage-dark/5 text-sage-dark"
+                            : "border-sage-dark/10 bg-cream/20 text-ink/60 hover:border-sage-dark/30"
+                        }`}
+                      >
+                        <span className="text-xs font-bold leading-none">{item.label}</span>
+                        <span className="text-[9px] mt-1 opacity-70 leading-tight">{item.desc}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Admin Sub-Role Selector (conditional) */}
+                {role === "admin" && (
+                  <div className="space-y-1.5 animate-fadeIn p-3 rounded-card bg-sage-dark/5 border border-sage-dark/10">
+                    <label className="text-xs font-semibold text-sage-dark block">Admin Permission Level</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "general", label: "General", desc: "Partners, volunteers" },
+                        { id: "tech", label: "Tech", desc: "Support tickets" },
+                        { id: "staff", label: "Staff", desc: "Participants only" },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setAdminSubRole(item.id as any)}
+                          className={`flex flex-col items-start p-2 rounded-card border-2 text-left transition-all ${
+                            adminSubRole === item.id
+                              ? "border-sage-dark bg-paper text-sage-dark"
+                              : "border-sage-dark/10 bg-cream/20 text-ink/60 hover:border-sage-dark/30"
+                          }`}
+                        >
+                          <span className="text-[10px] font-bold leading-none">{item.label}</span>
+                          <span className="text-[8px] mt-0.5 opacity-70 leading-tight">{item.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Terms Consent - Register only */}
             {!isLoginTab && (
               <p className="text-[10px] text-ink/50 leading-relaxed pt-1">
-                By registering, you consent to our privacy terms. Your account will be created with the <strong className="text-sage-dark">{role === "volunteer" ? "Volunteer" : "Student"}</strong> role — {role === "volunteer" ? "you can upload and manage study materials." : "you can browse, save, and review study materials."}
+                By registering, you consent to our privacy terms. Your account will be created with the{" "}
+                <strong className="text-sage-dark">
+                  {role === "volunteer" ? "Volunteer" : role === "admin" ? `${adminSubRole.toUpperCase()} ADMIN` : "Student"}
+                </strong>{" "}
+                role —{" "}
+                {role === "volunteer"
+                  ? "you can upload and manage study materials."
+                  : role === "admin"
+                  ? `you will manage the platform with ${adminSubRole} admin privileges.`
+                  : "you can browse, save, and review study materials."}
               </p>
             )}
 

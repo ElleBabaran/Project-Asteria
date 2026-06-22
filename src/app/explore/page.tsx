@@ -25,7 +25,6 @@ function ExploreContent() {
   const [searchQuery, setSearchQuery] = useState("");
   // Filters
   const [selectedCountry, setSelectedCountry] = useState("");
-  const [selectedCurriculum, setSelectedCurriculum] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -44,16 +43,10 @@ function ExploreContent() {
     }
   }, [searchParams]);
 
-  // Handle cascading curriculum resets when country changes
-  useEffect(() => {
-    setSelectedCurriculum("");
-  }, [selectedCountry]);
-
   // Clear all filters
   const handleClearFilters = () => {
     setSearchQuery("");
     setSelectedCountry("");
-    setSelectedCurriculum("");
     setSelectedGrade("");
     setSelectedSubject("");
     setSelectedTypes([]);
@@ -70,20 +63,16 @@ function ExploreContent() {
       const matchDesc = res.description.toLowerCase().includes(q);
       const matchSubject = res.subject.toLowerCase().includes(q);
       const matchCountry = res.country.toLowerCase().includes(q);
-      const matchCurriculum = res.curriculum.toLowerCase().includes(q);
       const matchGrade = res.grade.toLowerCase().includes(q);
       const matchTopic = res.topic.toLowerCase().includes(q);
 
-      if (!matchTitle && !matchDesc && !matchSubject && !matchCountry && !matchCurriculum && !matchGrade && !matchTopic) {
+      if (!matchTitle && !matchDesc && !matchSubject && !matchCountry && !matchGrade && !matchTopic) {
         return false;
       }
     }
 
     // Country match
     if (selectedCountry && res.country !== selectedCountry) return false;
-
-    // Curriculum match
-    if (selectedCurriculum && res.curriculum !== selectedCurriculum) return false;
 
     // Grade match
     if (selectedGrade && res.grade !== selectedGrade) return false;
@@ -129,11 +118,6 @@ const handleDownload = (e: React.MouseEvent, res: Resource) => {
 };
 
 
-  // Curricula available for selected country
-  const availableCurricula = selectedCountry
-    ? categories.curricula[selectedCountry] || []
-    : [];
-
   // Calculation of average rating
   const getAverageRating = (res: Resource) => {
     if (res.comments.length === 0) return 5.0; // Default placeholder rating
@@ -166,7 +150,7 @@ const handleDownload = (e: React.MouseEvent, res: Resource) => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by keywords, topic, curriculum, grade, subject..."
+              placeholder="Search by keywords, topic, grade, subject, country..."
               className="w-full bg-transparent text-ink text-sm sm:text-base placeholder:text-ink/40 focus:outline-none"
             />
             {searchQuery && (
@@ -215,25 +199,7 @@ const handleDownload = (e: React.MouseEvent, res: Resource) => {
               </select>
             </div>
 
-            {/* Filter Curriculum */}
-            <div className="space-y-2">
-              <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage">
-                Curriculum
-              </label>
-              <select
-                value={selectedCurriculum}
-                onChange={(e) => setSelectedCurriculum(e.target.value)}
-                disabled={!selectedCountry}
-                className="w-full rounded-card border border-sage-dark/10 bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-sage disabled:bg-sage-dark/5 disabled:opacity-60 transition-all"
-              >
-                <option value="">{selectedCountry ? "All Curricula" : "Select Country first"}</option>
-                {availableCurricula.map((curr) => (
-                  <option key={curr} value={curr}>
-                    {curr}
-                  </option>
-                ))}
-              </select>
-            </div>
+
 
             {/* Filter Grade */}
             <div className="space-y-2">
@@ -401,25 +367,7 @@ const handleDownload = (e: React.MouseEvent, res: Resource) => {
                 </select>
               </div>
 
-              {/* Filter Curriculum */}
-              <div className="space-y-2">
-                <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage">
-                  Curriculum
-                </label>
-                <select
-                  value={selectedCurriculum}
-                  onChange={(e) => setSelectedCurriculum(e.target.value)}
-                  disabled={!selectedCountry}
-                  className="w-full rounded-card border border-sage-dark/10 bg-cream px-3 py-2 text-sm text-ink disabled:opacity-60"
-                >
-                  <option value="">{selectedCountry ? "All Curricula" : "Select Country first"}</option>
-                  {availableCurricula.map((curr) => (
-                    <option key={curr} value={curr}>
-                      {curr}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
 
               {/* Filter Grade */}
               <div className="space-y-2">

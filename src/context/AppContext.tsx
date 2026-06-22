@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 export interface Comment {
   id: string;
@@ -267,19 +267,63 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     grades: string[];
     subjects: string[];
   }>({
-    countries: ["India", "United States", "United Kingdom", "Philippines", "Australia", "Canada"],
-    curricula: {
-      "India": ["CBSE", "ICSE", "State Board"],
-      "United States": ["Common Core", "AP", "IB"],
-      "United Kingdom": ["GCSE", "A-Levels", "Key Stage 3"],
-      "Philippines": ["DepEd", "K-12"],
-      "Australia": ["ACARA", "HSC", "VCE"],
-      "Canada": ["Ontario Curriculum", "BC Curriculum", "Quebec Curriculum"]
-    },
-    grades: [
-      "Grade 6", "Class 8", "Grade 8", "Year 9", "Grade 9", "Class 10", "Grade 10", "Key Stage 3", "Key Stage 4"
+    countries: [
+      "Afghanistan", "Albania", "Algeria", "Angola", "Argentina", "Armenia", "Australia",
+      "Austria", "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium", "Bolivia",
+      "Bosnia and Herzegovina", "Botswana", "Brazil", "Bulgaria", "Cambodia", "Cameroon",
+      "Canada", "Chile", "China", "Colombia", "Congo", "Costa Rica", "Croatia", "Cuba",
+      "Czech Republic", "Denmark", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
+      "Estonia", "Ethiopia", "Finland", "France", "Georgia", "Germany", "Ghana", "Greece",
+      "Guatemala", "Honduras", "Hungary", "India", "Indonesia", "Iran", "Iraq", "Ireland",
+      "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kuwait",
+      "Kyrgyzstan", "Latvia", "Lebanon", "Libya", "Lithuania", "Malaysia", "Mexico",
+      "Moldova", "Mongolia", "Morocco", "Mozambique", "Myanmar", "Nepal", "Netherlands",
+      "New Zealand", "Nicaragua", "Nigeria", "North Korea", "Norway", "Oman", "Pakistan",
+      "Palestine", "Panama", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+      "Qatar", "Romania", "Russia", "Rwanda", "Saudi Arabia", "Senegal", "Serbia",
+      "Singapore", "Slovakia", "Slovenia", "Somalia", "South Africa", "South Korea",
+      "Spain", "Sri Lanka", "Sudan", "Sweden", "Switzerland", "Syria", "Taiwan",
+      "Tajikistan", "Tanzania", "Thailand", "Tunisia", "Turkey", "Turkmenistan",
+      "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+      "Uruguay", "Uzbekistan", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
     ],
-    subjects: ["Science", "Mathematics", "Biology", "English Literature", "History", "Physics", "Chemistry"]
+    curricula: {},
+    grades: [
+      // Elementary / Primary
+      "Kindergarten",
+      "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6",
+      "Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6",
+      "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6",
+      "Key Stage 1", "Key Stage 2",
+      // Middle / Junior High
+      "Grade 7", "Grade 8", "Grade 9",
+      "Class 7", "Class 8", "Class 9",
+      "Year 7", "Year 8", "Year 9",
+      "Key Stage 3",
+      // Senior High / High School
+      "Grade 10", "Grade 11", "Grade 12",
+      "Class 10", "Class 11", "Class 12",
+      "Year 10", "Year 11", "Year 12",
+      "Key Stage 4", "Key Stage 5",
+      "Senior High School — STEM", "Senior High School — ABM",
+      "Senior High School — HUMSS", "Senior High School — GAS",
+      // College / Undergraduate
+      "1st Year College", "2nd Year College", "3rd Year College", "4th Year College",
+      "Freshman", "Sophomore", "Junior", "Senior",
+      // Graduate
+      "Master's Degree", "Doctoral / PhD", "Post-Doctoral"
+    ],
+    subjects: [
+      "Accounting", "Agriculture", "Architecture", "Art", "Biology",
+      "Business Studies", "Chemistry", "Computer Science", "Criminology",
+      "Economics", "Education", "Engineering", "English", "English Literature",
+      "Environmental Science", "Filipino", "Finance", "Geography", "Health",
+      "History", "Home Economics", "Law", "Mathematics", "Music",
+      "Nursing", "Philosophy", "Physical Education", "Physics",
+      "Political Science", "Psychology", "Religion", "Science",
+      "Social Studies", "Sociology", "Statistics", "Technology",
+      "Others"
+    ]
   });
 
   // Mock site analytics
@@ -434,40 +478,48 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     saveToLocal("astera_resources", filtered);
   };
 
-  const toggleFavorite = (id: string) => {
-    let nextSaved = [...savedResources];
-    if (nextSaved.includes(id)) {
-      nextSaved = nextSaved.filter(favId => favId !== id);
-    } else {
-      nextSaved.push(id);
-    }
-    setSavedResources(nextSaved);
-    saveToLocal("astera_saved", nextSaved);
-  };
-
-  const recordDownload = (id: string) => {
-    // Increment download count
-    const updated = resources.map(res => {
-      if (res.id === id) {
-        return { ...res, downloadsCount: res.downloadsCount + 1 };
+  const toggleFavorite = useCallback((id: string) => {
+    setSavedResources(prev => {
+      let nextSaved = [...prev];
+      if (nextSaved.includes(id)) {
+        nextSaved = nextSaved.filter(favId => favId !== id);
+      } else {
+        nextSaved.push(id);
       }
-      return res;
+      saveToLocal("astera_saved", nextSaved);
+      return nextSaved;
     });
-    setResources(updated);
-    saveToLocal("astera_resources", updated);
+  }, []);
+
+  const recordDownload = useCallback((id: string) => {
+    // Increment download count
+    setResources(prevResources => {
+      const updated = prevResources.map(res => {
+        if (res.id === id) {
+          return { ...res, downloadsCount: res.downloadsCount + 1 };
+        }
+        return res;
+      });
+      saveToLocal("astera_resources", updated);
+      return updated;
+    });
 
     // Record history
-    const historyItem = { resourceId: id, timestamp: new Date().toISOString() };
-    const nextHistory = [historyItem, ...downloadHistory.filter(h => h.resourceId !== id)].slice(0, 50); // limit 50
-    setDownloadHistory(nextHistory);
-    saveToLocal("astera_history", nextHistory);
-  };
+    setDownloadHistory(prevHistory => {
+      const historyItem = { resourceId: id, timestamp: new Date().toISOString() };
+      const nextHistory = [historyItem, ...prevHistory.filter(h => h.resourceId !== id)].slice(0, 50); // limit 50
+      saveToLocal("astera_history", nextHistory);
+      return nextHistory;
+    });
+  }, []);
 
-  const recordView = (id: string) => {
-    const nextRecent = [id, ...recentlyViewed.filter(viewedId => viewedId !== id)].slice(0, 10); // limit 10
-    setRecentlyViewed(nextRecent);
-    saveToLocal("astera_recent", nextRecent);
-  };
+  const recordView = useCallback((id: string) => {
+    setRecentlyViewed(prev => {
+      const nextRecent = [id, ...prev.filter(viewedId => viewedId !== id)].slice(0, 10); // limit 10
+      saveToLocal("astera_recent", nextRecent);
+      return nextRecent;
+    });
+  }, []);
 
   const addComment = (resourceId: string, text: string, rating?: number) => {
     const newComment: Comment = {

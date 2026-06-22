@@ -3,16 +3,15 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useApp, Resource } from "@/context/AppContext";
-import { ArrowLeft, Download, Heart, Star, Calendar, User, FileText, AlertTriangle, Send, CheckCircle, LogIn, Eye, File } from "lucide-react";
+import { useApp } from "@/context/AppContext";
+import { ArrowLeft, Download, Heart, Star, Calendar, User, AlertTriangle, Send, CheckCircle, LogIn, Eye, File } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ToastContainer, useToast } from "@/components/Toast";
 
 export default function ResourceDetailsPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const { user, resources, savedResources, toggleFavorite, recordDownload, recordView, addComment, reportBrokenLink } = useApp();
-  const router = useRouter();
+
   const { toasts, addToast, removeToast } = useToast();
 
   // Find target resource
@@ -28,12 +27,13 @@ export default function ResourceDetailsPage({ params }: { params: { id: string }
   // Guest login prompt
   const [guestPrompt, setGuestPrompt] = useState<string | null>(null);
 
-  // Record view on mount
+  // Record view on mount — use stable `id` string, not `resource` object reference
   useEffect(() => {
     if (resource) {
-      recordView(resource.id);
+      recordView(id);
     }
-  }, [resource, recordView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (!resource) {
     return (
@@ -66,7 +66,7 @@ const handleDownload = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    alert(`Starting download of ${resource.title} (${resource.fileSize})...`);
+    addToast(`Downloading "${resource.title}" (${resource.fileSize})`, "download");
     return;
   }
 
@@ -83,7 +83,7 @@ const handleDownload = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  alert(`Starting download of ${resource.title} (${resource.fileSize})...`);
+  addToast(`Downloading "${resource.title}" (${resource.fileSize})`, "download");
 };
 
   const handleCommentSubmit = (e: React.FormEvent) => {
@@ -114,7 +114,7 @@ const handleDownload = () => {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Failed to submit report." }));
-        alert(data.error || "Failed to submit report. Please try again.");
+        addToast(data.error || "Failed to submit report. Please try again.");
         setReportLoading(false);
         return;
       }
@@ -131,13 +131,6 @@ const handleDownload = () => {
     setReportLoading(false);
   };
 
-  const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/explore");
-    }
-  };
 
   // Compute rating average
   const getAverageRating = () => {
@@ -155,14 +148,13 @@ const handleDownload = () => {
 
       <section className="flex-1 mx-auto max-w-6xl w-full px-6 py-8 lg:px-10">
         {/* Back button */}
-        <button
-          type="button"
-          onClick={handleBack}
+        <Link
+          href="/explore"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-sage hover:text-sage-dark mb-6 transition-colors"
         >
           <ArrowLeft size={16} />
           <span>Back to library</span>
-        </button>
+        </Link>
 
         {/* Layout Grid */}
         <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -205,8 +197,6 @@ const handleDownload = () => {
               {/* Path metadata badge row */}
               <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-ink/50">
                 <span className="bg-sage-dark/5 px-2 py-1 rounded">{resource.country}</span>
-                <span>/</span>
-                <span className="bg-sage-dark/5 px-2 py-1 rounded">{resource.curriculum}</span>
                 <span>/</span>
                 <span className="bg-sage-dark/5 px-2 py-1 rounded">{resource.grade}</span>
                 <span>/</span>
@@ -273,7 +263,6 @@ const handleDownload = () => {
                       <div className="flex flex-wrap gap-2 text-[10px] font-mono">
                         <span className="bg-sage-dark/5 px-2 py-1 rounded text-ink/60">{resource.subject}</span>
                         <span className="bg-sage-dark/5 px-2 py-1 rounded text-ink/60">{resource.grade}</span>
-                        <span className="bg-sage-dark/5 px-2 py-1 rounded text-ink/60">{resource.curriculum}</span>
                       </div>
                     </div>
                     <p className="text-xs text-ink/45 italic">
@@ -294,7 +283,7 @@ const handleDownload = () => {
                     <div className="border-b border-sage-dark/10 pb-3 text-center">
                       <h2 className="font-display text-xl font-bold text-sage-dark uppercase tracking-tight">{resource.title}</h2>
                       <p className="font-mono text-[9px] text-ink/50 uppercase tracking-widest mt-1">
-                        {resource.subject} &middot; {resource.grade} &middot; {resource.curriculum}
+                        {resource.subject} &middot; {resource.grade}
                       </p>
                       <p className="text-[10px] text-ink/40 mt-1">Topic: {resource.topic}</p>
                     </div>
@@ -329,7 +318,7 @@ const handleDownload = () => {
                     <div className="bg-sage-light/20 p-4 rounded-card border border-sage/10 text-center">
                       <h4 className="font-display text-xs font-bold text-sage-dark">RESOURCE PREVIEW</h4>
                       <p className="text-[10px] text-sage-dark/70 mt-1">
-                        Contributed by {resource.contributorName} · {resource.country} · {resource.curriculum}
+                        Contributed by {resource.contributorName} · {resource.country}
                       </p>
                     </div>
                   </div>

@@ -199,7 +199,7 @@ export default function StudentDashboard() {
                         </h3>
                       </Link>
                       <p className="mt-1 text-xs text-ink/40 font-mono">
-                        {res.country} &bull; {res.curriculum}
+                        {res.country}
                       </p>
                       <p className="text-xs text-sage-dark/85 mt-0.5">
                         {res.grade} &bull; {res.subject}

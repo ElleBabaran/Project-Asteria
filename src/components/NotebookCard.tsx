@@ -217,7 +217,7 @@ export default function NotebookCard({
                 className="mt-0.5 text-center font-mono text-[8px] opacity-50"
                 style={{ color: "#2E3B36" }}
               >
-                {resource.curriculum} · {resource.subject}
+                {resource.subject}
               </p>
               {/* Bottom rule */}
               <div

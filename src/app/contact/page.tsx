@@ -4,6 +4,7 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Mail, Phone, MapPin, Send, CheckCircle, Info } from "lucide-react";
+import { ToastContainer, useToast } from "@/components/Toast";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -12,11 +13,12 @@ export default function ContactPage() {
   const [message, setMessage] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const { toasts, addToast, removeToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) {
-      alert("Please fill in all required fields.");
+      addToast("Please fill in all required fields.", "check");
       return;
     }
 
@@ -31,14 +33,14 @@ export default function ContactPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to send message. Please try again.");
+        addToast(data.error || "Failed to send message. Please try again.", "check");
         return;
       }
 
       setIsSubmitted(true);
     } catch (error) {
       console.error("[contact submit]", error);
-      alert("Unable to send message. Please check your connection and try again.");
+      addToast("Unable to send message. Please check your connection and try again.", "check");
     } finally {
       setIsSending(false);
     }
@@ -46,6 +48,7 @@ export default function ContactPage() {
 
   return (
     <main className="bg-cream min-h-screen flex flex-col font-body">
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <Navbar />
 
       <section className="flex-1 mx-auto max-w-5xl w-full px-6 py-16 lg:px-10 grid gap-12 lg:grid-cols-[1fr_1.3fr] items-start">

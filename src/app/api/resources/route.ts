@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const description = formData.get("description") as string;
     const type = formData.get("type") as string; // 'PDF', 'PPT', etc.
     const country = formData.get("country") as string;
-    const curriculum = formData.get("curriculum") as string;
+    const curriculum = (formData.get("curriculum") as string) || "General";
     const grade = formData.get("grade") as string;
     const subject = formData.get("subject") as string;
     const submitterEmail = formData.get("submitterEmail") as string;

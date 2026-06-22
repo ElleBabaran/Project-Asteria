@@ -18,15 +18,17 @@ export default function VolunteerDashboard() {
   // Form states
   const [title, setTitle] = useState("");
   const [country, setCountry] = useState("");
-  const [curriculum, setCurriculum] = useState("");
   const [grade, setGrade] = useState("");
   const [subject, setSubject] = useState("");
+  const [customSubject, setCustomSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [description, setDescription] = useState("");
   const [fileType, setFileType] = useState<"PDF" | "PPT" | "DOC" | "Image" | "Worksheet">("PDF");
   const [fileSize, setFileSize] = useState("2.5 MB");
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
+  const effectiveSubject = subject === "Others" ? customSubject : subject;
 
   // Fallback if not logged in as Volunteer
   if (!user || user.role !== "volunteer") {
@@ -83,9 +85,9 @@ export default function VolunteerDashboard() {
   const resetForm = () => {
     setTitle("");
     setCountry("");
-    setCurriculum("");
     setGrade("");
     setSubject("");
+    setCustomSubject("");
     setTopic("");
     setDescription("");
     setFileType("PDF");
@@ -94,7 +96,7 @@ export default function VolunteerDashboard() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !country || !curriculum || !grade || !subject || !topic || !description || (!file && !editingResId)) {
+    if (!title || !country || !grade || !effectiveSubject || !topic || !description || (!file && !editingResId)) {
       addToast("Please fill in all required fields and select a file.");
       return;
     }
@@ -106,9 +108,9 @@ export default function VolunteerDashboard() {
       editResource(editingResId, {
         title,
         country,
-        curriculum,
+        curriculum: "",
         grade,
-        subject,
+        subject: effectiveSubject,
         topic,
         description,
         fileType,
@@ -127,9 +129,9 @@ export default function VolunteerDashboard() {
         formData.append("description", description);
         formData.append("type", fileType);
         formData.append("country", country);
-        formData.append("curriculum", curriculum);
+        formData.append("curriculum", "");
         formData.append("grade", grade);
-        formData.append("subject", subject);
+        formData.append("subject", effectiveSubject);
         formData.append("submitterEmail", user.email);
         formData.append("submitterRole", user.role);
 
@@ -145,7 +147,7 @@ export default function VolunteerDashboard() {
           
           // Also add to local UI state so it shows up instantly without full page refresh
           addResource({
-            title, country, curriculum, grade, subject, topic, description, fileType,
+            title, country, curriculum: "", grade, subject: effectiveSubject, topic, description, fileType,
             fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
             contributorName: user.name,
             fileUrl: data.fileUrl,
@@ -159,7 +161,7 @@ export default function VolunteerDashboard() {
         // Fallback: add to local context even if DB is unavailable
         const objectUrl = file ? URL.createObjectURL(file) : undefined;
         addResource({
-          title, country, curriculum, grade, subject, topic, description, fileType,
+          title, country, curriculum: "", grade, subject: effectiveSubject, topic, description, fileType,
           fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
           contributorName: user.name,
           fileUrl: objectUrl,
@@ -176,9 +178,9 @@ export default function VolunteerDashboard() {
     setEditingResId(res.id);
     setTitle(res.title);
     setCountry(res.country);
-    setCurriculum(res.curriculum);
     setGrade(res.grade);
     setSubject(res.subject);
+    setCustomSubject("");
     setTopic(res.topic);
     setDescription(res.description);
     setFileType(res.fileType);
@@ -186,10 +188,13 @@ export default function VolunteerDashboard() {
   };
 
   const handleDeleteClick = (id: string) => {
-    if (confirm("Are you sure you want to delete this resource?")) {
-      deleteResource(id);
-      addToast("Resource deleted.", "check");
-    }
+    setDeletePendingId(id);
+  };
+
+  const confirmDelete = (id: string) => {
+    deleteResource(id);
+    addToast("Resource deleted.", "check");
+    setDeletePendingId(null);
   };
 
   const cancelEdit = () => {
@@ -197,7 +202,6 @@ export default function VolunteerDashboard() {
     resetForm();
   };
 
-  const availableCurricula = country ? categories.curricula[country] || [] : [];
 
   return (
     <main className="bg-cream min-h-screen flex flex-col font-body">
@@ -291,26 +295,6 @@ export default function VolunteerDashboard() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-sage-dark">Curriculum *</label>
-                  <select
-                    value={curriculum}
-                    onChange={(e) => setCurriculum(e.target.value)}
-                    disabled={!country}
-                    className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage disabled:opacity-50"
-                    required
-                  >
-                    <option value="">Select Curriculum</option>
-                    {availableCurricula.map((curr) => (
-                      <option key={curr} value={curr}>
-                        {curr}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
                   <label className="text-xs font-semibold text-sage-dark">Grade / Class *</label>
                   <select
                     value={grade}
@@ -326,12 +310,14 @@ export default function VolunteerDashboard() {
                     ))}
                   </select>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-sage-dark">Subject *</label>
                   <select
                     value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
+                    onChange={(e) => { setSubject(e.target.value); if (e.target.value !== "Others") setCustomSubject(""); }}
                     className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
                     required
                   >
@@ -342,10 +328,18 @@ export default function VolunteerDashboard() {
                       </option>
                     ))}
                   </select>
+                  {subject === "Others" && (
+                    <input
+                      type="text"
+                      value={customSubject}
+                      onChange={(e) => setCustomSubject(e.target.value)}
+                      placeholder="Type your subject here..."
+                      className="mt-2 w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                      required
+                    />
+                  )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-sage-dark">Chapter / Topic *</label>
                   <input
@@ -517,14 +511,42 @@ export default function VolunteerDashboard() {
                               <Edit size={11} />
                               <span>Edit</span>
                             </button>
-                            <button
-                              onClick={() => handleDeleteClick(res.id)}
-                              className="text-rose-600 hover:text-rose-800 flex items-center gap-0.5 text-xs font-semibold"
-                              title="Delete resource"
-                            >
-                              <Trash size={11} />
-                              <span>Delete</span>
-                            </button>
+                            {deletePendingId === res.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Confirm Delete?</span>
+                                <button
+                                  onClick={() => confirmDelete(res.id)}
+                                  className="bg-rose-600 hover:bg-rose-700 text-white text-[10px] px-2 py-0.5 rounded font-medium shadow-sm transition-colors"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  onClick={() => setDeletePendingId(null)}
+                                  className="bg-sage-dark/10 hover:bg-sage-dark/20 text-sage-dark text-[10px] px-2 py-0.5 rounded font-medium transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleEditClick(res)}
+                                  className="text-sage hover:text-sage-dark flex items-center gap-0.5 text-xs font-semibold"
+                                  title="Edit material metadata"
+                                >
+                                  <Edit size={11} />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteClick(res.id)}
+                                  className="text-rose-600 hover:text-rose-800 flex items-center gap-0.5 text-xs font-semibold"
+                                  title="Delete resource"
+                                >
+                                  <Trash size={11} />
+                                  <span>Delete</span>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -87,22 +87,23 @@ export default function AdminDashboard() {
   // Upload Resource states
   const [title, setTitle] = useState("");
   const [country, setCountry] = useState("");
-  const [curriculum, setCurriculum] = useState("");
   const [grade, setGrade] = useState("");
   const [subject, setSubject] = useState("");
+  const [customSubject, setCustomSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [description, setDescription] = useState("");
   const [fileType, setFileType] = useState<"PDF" | "PPT" | "DOC" | "Image" | "Worksheet">("PDF");
   const [file, setFile] = useState<File | null>(null);
   const [fileSize, setFileSize] = useState("2.5 MB");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const effectiveSubject = subject === "Others" ? customSubject : subject;
 
   const resetUploadForm = () => {
     setTitle("");
     setCountry("");
-    setCurriculum("");
     setGrade("");
     setSubject("");
+    setCustomSubject("");
     setTopic("");
     setDescription("");
     setFileType("PDF");
@@ -112,7 +113,7 @@ export default function AdminDashboard() {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!title || !country || !curriculum || !grade || !subject || !topic || !description || !file) {
+    if (!title || !country || !grade || !effectiveSubject || !topic || !description || !file) {
       addToast("Please fill in all required fields and select a file.");
       return;
     }
@@ -126,9 +127,9 @@ export default function AdminDashboard() {
       formData.append("description", description);
       formData.append("type", fileType);
       formData.append("country", country);
-      formData.append("curriculum", curriculum);
+      formData.append("curriculum", "");
       formData.append("grade", grade);
-      formData.append("subject", subject);
+      formData.append("subject", effectiveSubject);
       formData.append("submitterEmail", user.email);
       formData.append("submitterRole", user.role);
 
@@ -144,7 +145,7 @@ export default function AdminDashboard() {
         
         // Add directly to context as approved since admin uploaded it
         addResource({
-          title, country, curriculum, grade, subject, topic, description, fileType,
+          title, country, curriculum: "", grade, subject: effectiveSubject, topic, description, fileType,
           fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
           contributorName: user.name,
           fileUrl: data.fileUrl,
@@ -157,7 +158,7 @@ export default function AdminDashboard() {
       console.error(error);
       const objectUrl = URL.createObjectURL(file);
       addResource({
-        title, country, curriculum, grade, subject, topic, description, fileType,
+        title, country, curriculum: "", grade, subject: effectiveSubject, topic, description, fileType,
         fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
         contributorName: user.name,
         fileUrl: objectUrl,
@@ -169,7 +170,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const availableCurricula = country ? categories.curricula[country] || [] : [];
 
   // Fallback if not logged in as Admin
   if (!user || user.role !== "admin") {
@@ -421,7 +421,6 @@ export default function AdminDashboard() {
                         <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-ink/50 bg-cream/30 p-2 rounded w-fit">
                           <strong className="text-sage-dark">Path:</strong>
                           <span>{res.country}</span> &bull;
-                          <span>{res.curriculum}</span> &bull;
                           <span>{res.grade}</span> &bull;
                           <span>{res.subject}</span> &bull;
                           <span>{res.topic}</span>
@@ -601,28 +600,10 @@ export default function AdminDashboard() {
                       className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
                     >
                       <option value="country">Country</option>
-                      <option value="curriculum">Curriculum</option>
                       <option value="grade">Grade / Class</option>
                       <option value="subject">Subject</option>
                     </select>
                   </div>
-
-                  {catType === "curriculum" && (
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-sage-dark">Attach to Country</label>
-                      <select
-                        value={catCountryKey}
-                        onChange={(e) => setCatCountryKey(e.target.value)}
-                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
-                        required
-                      >
-                        <option value="">Choose Country</option>
-                        {categories.countries.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
 
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-sage-dark">Category Label / Name</label>
@@ -630,7 +611,7 @@ export default function AdminDashboard() {
                       type="text"
                       value={catValue}
                       onChange={(e) => setCatValue(e.target.value)}
-                      placeholder="e.g. GCSE, Biology, Singapore, Class 12..."
+                      placeholder="e.g. Biology, Singapore, Class 12..."
                       className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
                       required
                     />
@@ -654,21 +635,10 @@ export default function AdminDashboard() {
 
                 <div className="space-y-6">
                   <div>
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage block mb-2">Countries &amp; Curricula Map</span>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage block mb-2">Available Countries</span>
+                    <div className="flex flex-wrap gap-1 bg-cream/15 p-3 border border-sage-dark/5 rounded-card">
                       {categories.countries.map((country) => (
-                        <div key={country} className="p-3 bg-cream/15 border border-sage-dark/5 rounded-card text-xs">
-                          <strong className="text-sage-dark text-sm block mb-1.5">{country}</strong>
-                          <div className="flex flex-wrap gap-1">
-                            {categories.curricula[country]?.length > 0 ? (
-                              categories.curricula[country].map((cur) => (
-                                <span key={cur} className="bg-paper px-2 py-0.5 rounded border text-[10px] text-ink/75 font-mono">{cur}</span>
-                              ))
-                            ) : (
-                              <span className="text-ink/40 italic text-[10px]">No curriculums mapped.</span>
-                            )}
-                          </div>
-                        </div>
+                        <span key={country} className="bg-paper px-2.5 py-1 rounded text-xs text-sage-dark font-medium border border-sage/10">{country}</span>
                       ))}
                     </div>
                   </div>
@@ -1124,26 +1094,6 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-sage-dark">Curriculum *</label>
-                      <select
-                        value={curriculum}
-                        onChange={(e) => setCurriculum(e.target.value)}
-                        disabled={!country}
-                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage disabled:opacity-50"
-                        required
-                      >
-                        <option value="">Select Curriculum</option>
-                        {availableCurricula.map((curr) => (
-                          <option key={curr} value={curr}>
-                            {curr}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
                       <label className="text-xs font-semibold text-sage-dark">Grade / Class *</label>
                       <select
                         value={grade}
@@ -1159,12 +1109,14 @@ export default function AdminDashboard() {
                         ))}
                       </select>
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-sage-dark">Subject *</label>
                       <select
                         value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
+                        onChange={(e) => { setSubject(e.target.value); if (e.target.value !== "Others") setCustomSubject(""); }}
                         className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
                         required
                       >
@@ -1175,6 +1127,16 @@ export default function AdminDashboard() {
                           </option>
                         ))}
                       </select>
+                      {subject === "Others" && (
+                        <input
+                          type="text"
+                          value={customSubject}
+                          onChange={(e) => setCustomSubject(e.target.value)}
+                          placeholder="Type your subject here..."
+                          className="mt-2 w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                          required
+                        />
+                      )}
                     </div>
                   </div>
 

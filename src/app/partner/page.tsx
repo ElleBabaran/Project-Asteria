@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Globe, Building, Mail, Award, CheckCircle } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { ToastContainer, useToast } from "@/components/Toast";
 
 export default function PartnerPage() {
   const { submitPartnerRequest } = useApp();
@@ -16,10 +17,12 @@ export default function PartnerPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
+  const { toasts, addToast, removeToast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName || !contactName || !email || !details) {
-      alert("Please fill in all required fields.");
+      addToast("Please fill in all required fields.", "check");
       return;
     }
 
@@ -45,6 +48,7 @@ export default function PartnerPage() {
 
   return (
     <main className="bg-cream min-h-screen flex flex-col font-body">
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <Navbar />
 
       <section className="flex-1 mx-auto max-w-4xl w-full px-6 py-16 lg:px-10 grid gap-12 lg:grid-cols-[1fr_1.2fr] items-center">

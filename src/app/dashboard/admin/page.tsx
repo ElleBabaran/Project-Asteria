@@ -7,20 +7,20 @@ import { useApp, Resource, BrokenLinkReport, Announcement, PartnerRequest, Suppo
 import {
   Shield, CheckCircle, XCircle, AlertTriangle, BarChart3, Globe, Users, Megaphone,
   Plus, Trash2, FolderMinus, FolderPlus, Info, FileSignature, Building, Headphones,
-  UserCheck, Star, Clock, Wrench
+  UserCheck, Star, Clock, Wrench, Upload, PlusCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ToastContainer, useToast } from "@/components/Toast";
 import NotificationBell from "@/components/NotificationBell";
 
 
-type AdminTab = "moderation" | "analytics" | "categories" | "reports" | "announcements" | "volunteers" | "partners" | "tickets";
+type AdminTab = "moderation" | "analytics" | "categories" | "reports" | "announcements" | "volunteers" | "partners" | "tickets" | "upload";
 
 // Tabs available per admin sub-role
 const ROLE_TABS: Record<string, AdminTab[]> = {
-  general: ["moderation", "announcements", "reports", "volunteers", "partners", "analytics", "categories"],
-  tech: ["tickets", "reports"],
-  staff: ["volunteers"],
+  general: ["moderation", "announcements", "reports", "volunteers", "partners", "analytics", "categories", "upload"],
+  tech: ["tickets", "reports", "upload"],
+  staff: ["volunteers", "upload"],
 };
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -43,6 +43,7 @@ export default function AdminDashboard() {
     deleteAnnouncement,
     categories,
     addCategory,
+    addResource,
     analytics,
     volunteerApplications,
     approveVolunteerApplication,
@@ -72,6 +73,92 @@ export default function AdminDashboard() {
   const [annTitle, setAnnTitle] = useState("");
   const [annContent, setAnnContent] = useState("");
   const [annType, setAnnType] = useState<"info" | "warning" | "success">("info");
+
+  // Upload Resource states
+  const [title, setTitle] = useState("");
+  const [country, setCountry] = useState("");
+  const [curriculum, setCurriculum] = useState("");
+  const [grade, setGrade] = useState("");
+  const [subject, setSubject] = useState("");
+  const [topic, setTopic] = useState("");
+  const [description, setDescription] = useState("");
+  const [fileType, setFileType] = useState<"PDF" | "PPT" | "DOC" | "Image" | "Worksheet">("PDF");
+  const [file, setFile] = useState<File | null>(null);
+  const [fileSize, setFileSize] = useState("2.5 MB");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const resetUploadForm = () => {
+    setTitle("");
+    setCountry("");
+    setCurriculum("");
+    setGrade("");
+    setSubject("");
+    setTopic("");
+    setDescription("");
+    setFileType("PDF");
+    setFile(null);
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!title || !country || !curriculum || !grade || !subject || !topic || !description || !file) {
+      addToast("Please fill in all required fields and select a file.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("type", fileType);
+      formData.append("country", country);
+      formData.append("curriculum", curriculum);
+      formData.append("grade", grade);
+      formData.append("subject", subject);
+      formData.append("submitterEmail", user.email);
+
+      const res = await fetch("/api/resources", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        addToast("Resource uploaded and approved successfully!", "check");
+        resetUploadForm();
+        
+        // Add directly to context as approved since admin uploaded it
+        addResource({
+          title, country, curriculum, grade, subject, topic, description, fileType,
+          fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          contributorName: user.name,
+          fileUrl: data.fileUrl,
+        });
+      } else {
+        const data = await res.json();
+        addToast(`Upload error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error(error);
+      const objectUrl = URL.createObjectURL(file);
+      addResource({
+        title, country, curriculum, grade, subject, topic, description, fileType,
+        fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+        contributorName: user.name,
+        fileUrl: objectUrl,
+      });
+      addToast("Saved locally as approved! (Database unavailable.)", "check");
+      resetUploadForm();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const availableCurricula = country ? categories.curricula[country] || [] : [];
 
   // Fallback if not logged in as Admin
   if (!user || user.role !== "admin") {
@@ -207,6 +294,7 @@ export default function AdminDashboard() {
     { id: "volunteers" as AdminTab, label: "Volunteer Apps", count: volunteerApplications.filter((a) => a.status === "pending").length },
     { id: "partners" as AdminTab, label: "Partner Requests", count: partnerRequests.filter((r) => r.status === "pending").length },
     { id: "tickets" as AdminTab, label: "Support Tickets", count: supportTickets.filter((t) => t.status === "open").length },
+    { id: "upload" as AdminTab, label: "Upload Resource", count: null },
   ].filter((tab) => allowedTabs.includes(tab.id));
 
   return (
@@ -980,6 +1068,196 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Resource Tab */}
+          {activeTab === "upload" && (
+            <div className="space-y-6">
+              <div className="bg-paper rounded-card border-2 border-sage-dark/8 p-6 sm:p-8 shadow-card max-w-2xl mx-auto">
+                <div className="flex items-center gap-2 border-b border-sage-dark/10 pb-4 mb-6">
+                  <PlusCircle className="text-sage" size={20} />
+                  <h3 className="font-display font-semibold text-sage-dark">Upload & Approve New Resource</h3>
+                </div>
+
+                <form onSubmit={handleUploadSubmit} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-sage-dark">Resource Title *</label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Cell Division & Mitosis Guide"
+                      className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-sage-dark">Country *</label>
+                      <select
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                        required
+                      >
+                        <option value="">Select Country</option>
+                        {categories.countries.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-sage-dark">Curriculum *</label>
+                      <select
+                        value={curriculum}
+                        onChange={(e) => setCurriculum(e.target.value)}
+                        disabled={!country}
+                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage disabled:opacity-50"
+                        required
+                      >
+                        <option value="">Select Curriculum</option>
+                        {availableCurricula.map((curr) => (
+                          <option key={curr} value={curr}>
+                            {curr}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-sage-dark">Grade / Class *</label>
+                      <select
+                        value={grade}
+                        onChange={(e) => setGrade(e.target.value)}
+                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                        required
+                      >
+                        <option value="">Select Grade</option>
+                        {categories.grades.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-sage-dark">Subject *</label>
+                      <select
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                        required
+                      >
+                        <option value="">Select Subject</option>
+                        {categories.subjects.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-sage-dark">Chapter / Topic *</label>
+                      <input
+                        type="text"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder="e.g. Mitosis"
+                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-sage-dark">File Type *</label>
+                      <select
+                        value={fileType}
+                        onChange={(e) => setFileType(e.target.value as any)}
+                        className="w-full rounded-card border border-sage-dark/10 bg-cream/35 px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                        required
+                      >
+                        <option value="PDF">PDF Document</option>
+                        <option value="PPT">Presentation Slides</option>
+                        <option value="DOC">Word Document</option>
+                        <option value="Image">Diagram / Image Pack</option>
+                        <option value="Worksheet">Worksheet Form</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-sage-dark">Material Description *</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Detail the contents of the study guides or notes..."
+                      rows={4}
+                      className="w-full rounded-card border border-sage-dark/10 bg-cream/35 p-3 text-xs text-ink outline-none focus:border-sage"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-sage-dark">Resource File *</label>
+                    <div className="mt-1 flex justify-center rounded-card border-2 border-dashed border-sage-dark/25 px-6 py-6 transition-all hover:bg-sage-dark/5 bg-cream/20">
+                      <div className="space-y-1.5 text-center">
+                        {file ? (
+                          <div className="space-y-1">
+                            <span className="text-xs font-bold text-sage-dark block">{file.name}</span>
+                            <span className="text-[10px] text-ink/50 block font-mono">
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB &bull; {file.type || "Unknown type"}
+                            </span>
+                            <span className="text-[10px] text-leaf font-semibold">✓ File ready to upload</span>
+                            <button
+                              type="button"
+                              onClick={() => setFile(null)}
+                              className="text-[10px] text-rose-500 font-semibold hover:underline block mx-auto mt-2"
+                            >
+                              Remove file
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload size={24} className="mx-auto text-sage" />
+                            <div className="flex text-xs text-ink/70 justify-center">
+                              <label className="relative cursor-pointer rounded bg-transparent font-semibold text-sage-dark hover:text-sage focus-within:outline-none">
+                                <span>Choose a file</span>
+                                <input
+                                  type="file"
+                                  className="sr-only"
+                                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                  required
+                                />
+                              </label>
+                              <p className="pl-1">to upload</p>
+                            </div>
+                            <p className="text-[10px] text-ink/40">PDF, PPT, DOC, PNG, JPG up to 10MB</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-card bg-sage-dark text-paper py-3 font-semibold text-xs shadow hover:bg-sage transition-all mt-6 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? "Uploading & Approving..." : "Upload & Approve Material"}
+                  </button>
+                </form>
               </div>
             </div>
           )}

@@ -33,6 +33,11 @@ export default function Navbar() {
     return `/dashboard/${user.role}`;
   };
 
+  const visibleLinks = navLinks.filter(link => {
+    if (user?.role === "admin" && link.label === "Volunteer") return false;
+    return true;
+  });
+
   // Smooth scroll to #how-it-works from any page
   const handleHowItWorks = (e: React.MouseEvent, closeMobile?: () => void) => {
     e.preventDefault();
@@ -73,7 +78,7 @@ export default function Navbar() {
               Home
             </Link>
           )}
-          {navLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
@@ -163,7 +168,7 @@ export default function Navbar() {
                 Home
               </Link>
             )}
-            {navLinks.map((link) => (
+            {visibleLinks.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}

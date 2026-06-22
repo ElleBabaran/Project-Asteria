@@ -90,13 +90,13 @@ export async function POST(req: NextRequest) {
         description,
         fileUrl,
         type: resourceType,
-        status: "PENDING",
+        status: user.role === "ADMIN" ? "APPROVED" : "PENDING",
         submitterId: user.id,
         subjectId: s.id,
       }
     });
 
-    return NextResponse.json({ success: true, resource });
+    return NextResponse.json({ success: true, resource, fileUrl });
   } catch (error) {
     console.error("[POST /api/resources]", error);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useApp } from "@/context/AppContext";
 
 export default function VolunteerApplyPage() {
-  const { submitVolunteerApplication } = useApp();
+  const { user, submitVolunteerApplication } = useApp();
   const [name, setName] = useState("");
 
   const [email, setEmail] = useState("");
@@ -17,6 +17,31 @@ export default function VolunteerApplyPage() {
   const [message, setMessage] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formError, setFormError] = useState("");
+
+  // Fallback if already an Admin
+  if (user?.role === "admin") {
+    return (
+      <main className="bg-cream min-h-screen flex flex-col font-body">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <Heart size={48} className="text-rose-500 mb-4" />
+          <h2 className="font-display text-2xl font-semibold text-sage-dark">Volunteer Application</h2>
+          <p className="mt-2 text-sm text-ink/65 max-w-sm">
+            You are currently logged in as an Administrator. Administrators have full system access and do not need to apply for volunteer permissions.
+          </p>
+          <div className="mt-6">
+            <Link
+              href="/dashboard/admin"
+              className="rounded-card bg-sage-dark text-paper px-6 py-2.5 text-xs font-semibold"
+            >
+              Go to Admin Dashboard
+            </Link>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
 
   const handleSubmit = (e: React.FormEvent) => {

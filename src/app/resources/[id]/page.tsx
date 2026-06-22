@@ -132,12 +132,7 @@ const handleDownload = () => {
   };
 
   const handleBack = () => {
-    // If referrer is from the same site, go back. Otherwise, go to Explore.
-    const isInternalNav =
-      typeof document !== "undefined" &&
-      document.referrer &&
-      document.referrer.includes(window.location.hostname);
-    if (isInternalNav) {
+    if (typeof window !== "undefined" && window.history.length > 1) {
       router.back();
     } else {
       router.push("/explore");

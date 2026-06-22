@@ -131,6 +131,7 @@ export default function VolunteerDashboard() {
         formData.append("grade", grade);
         formData.append("subject", subject);
         formData.append("submitterEmail", user.email);
+        formData.append("submitterRole", user.role);
 
         const res = await fetch("/api/resources", {
           method: "POST",

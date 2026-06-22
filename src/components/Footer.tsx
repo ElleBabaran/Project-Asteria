@@ -15,14 +15,14 @@ export default function Footer() {
         { label: "Explore resources", href: "/explore", show: true },
         { label: "Browse by country", href: "/explore?focus=country", show: true },
         { label: "Browse by subject", href: "/explore?focus=subject", show: true },
-        { label: "Submit a resource", href: "/dashboard/volunteer", show: user?.role === "volunteer" || user?.role === "admin" },
+        { label: "Submit a resource", href: user?.role === "admin" ? "/dashboard/admin?tab=upload" : "/dashboard/volunteer", show: user?.role === "volunteer" || user?.role === "admin" },
       ].filter(l => l.show),
     },
     {
       title: "Get involved",
       links: [
         { label: "Become a volunteer", href: "/volunteer-apply", show: !user || user?.role === "student" || user?.role === "guest" },
-        { label: "Volunteer dashboard", href: "/dashboard/volunteer", show: user?.role === "volunteer" || user?.role === "admin" },
+        { label: "Volunteer dashboard", href: "/dashboard/volunteer", show: user?.role === "volunteer" },
         { label: "Admin dashboard", href: "/dashboard/admin", show: user?.role === "admin" },
         { label: "Partner with us", href: "/partner", show: true },
         { label: "Contact support", href: "/contact", show: true },

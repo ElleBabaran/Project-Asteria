@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useApp, Resource, BrokenLinkReport, Announcement, PartnerRequest, SupportTicket } from "@/context/AppContext";
@@ -59,6 +59,16 @@ export default function AdminDashboard() {
   const allowedTabs = ROLE_TABS[adminRole] ?? ROLE_TABS.general;
 
   const [activeTab, setActiveTab] = useState<AdminTab>(allowedTabs[0]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as AdminTab | null;
+      if (tabParam && allowedTabs.includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, [allowedTabs]);
 
   // Rejection state modal
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -120,6 +130,7 @@ export default function AdminDashboard() {
       formData.append("grade", grade);
       formData.append("subject", subject);
       formData.append("submitterEmail", user.email);
+      formData.append("submitterRole", user.role);
 
       const res = await fetch("/api/resources", {
         method: "POST",

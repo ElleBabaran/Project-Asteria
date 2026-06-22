@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useApp } from "@/context/AppContext";
-import { User, Image as ImageIcon, CheckCircle, Upload } from "lucide-react";
+import { User, Image as ImageIcon, CheckCircle, Upload, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ProfileSettingsPage() {
@@ -50,7 +50,15 @@ export default function ProfileSettingsPage() {
         <div className="max-w-2xl mx-auto space-y-6">
           
           <div className="flex items-center justify-between border-b border-sage-dark/10 pb-4">
+            <button
+              onClick={() => router.back()}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-sage hover:text-sage-dark transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
             <h1 className="font-display text-2xl font-bold text-sage-dark">Profile Settings</h1>
+            <div className="w-16" />{/* spacer */}
           </div>
 
           <div className="bg-paper rounded-card border border-sage-dark/10 p-6 shadow-sm">

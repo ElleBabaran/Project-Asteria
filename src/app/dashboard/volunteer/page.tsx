@@ -4,11 +4,13 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useApp, Resource } from "@/context/AppContext";
-import { Upload, LayoutDashboard, Clock, FileText, CheckCircle, AlertCircle, Edit, Trash, PlusCircle, Star, MessageSquare } from "lucide-react";
+import { Upload, LayoutDashboard, Clock, FileText, CheckCircle, AlertCircle, Edit, Trash, PlusCircle, Star, MessageSquare, File } from "lucide-react";
 import Link from "next/link";
+import { ToastContainer, useToast } from "@/components/Toast";
 
 export default function VolunteerDashboard() {
   const { user, resources, addResource, editResource, deleteResource, categories, login } = useApp();
+  const { toasts, addToast, removeToast } = useToast();
 
   // Selected resource for editing
   const [editingResId, setEditingResId] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export default function VolunteerDashboard() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !country || !curriculum || !grade || !subject || !topic || !description || (!file && !editingResId)) {
-      alert("Please fill in all required fields and select a file.");
+      addToast("Please fill in all required fields and select a file.");
       return;
     }
 
@@ -112,7 +114,7 @@ export default function VolunteerDashboard() {
         fileType,
         fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
       });
-      alert("Resource updated successfully! Resubmitted for Admin review.");
+      addToast("Resource updated! Resubmitted for Admin review.", "check");
       setEditingResId(null);
       resetForm();
       setIsSubmitting(false);
@@ -136,7 +138,8 @@ export default function VolunteerDashboard() {
         });
 
         if (res.ok) {
-          alert("Resource uploaded successfully! Saved to Database.");
+          const data = await res.json();
+          addToast("Resource uploaded successfully! Pending admin review.", "check");
           resetForm();
           
           // Also add to local UI state so it shows up instantly without full page refresh
@@ -144,14 +147,24 @@ export default function VolunteerDashboard() {
             title, country, curriculum, grade, subject, topic, description, fileType,
             fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
             contributorName: user.name,
+            fileUrl: data.fileUrl,
           });
         } else {
           const data = await res.json();
-          alert(`Error: ${data.error}`);
+          addToast(`Upload error: ${data.error}`);
         }
       } catch (error) {
         console.error(error);
-        alert("Failed to upload resource.");
+        // Fallback: add to local context even if DB is unavailable
+        const objectUrl = file ? URL.createObjectURL(file) : undefined;
+        addResource({
+          title, country, curriculum, grade, subject, topic, description, fileType,
+          fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
+          contributorName: user.name,
+          fileUrl: objectUrl,
+        });
+        addToast("Saved locally! (Database unavailable — file will appear in your submissions.)", "check");
+        resetForm();
       } finally {
         setIsSubmitting(false);
       }
@@ -174,7 +187,7 @@ export default function VolunteerDashboard() {
   const handleDeleteClick = (id: string) => {
     if (confirm("Are you sure you want to delete this resource?")) {
       deleteResource(id);
-      alert("Resource deleted successfully.");
+      addToast("Resource deleted.", "check");
     }
   };
 
@@ -187,6 +200,7 @@ export default function VolunteerDashboard() {
 
   return (
     <main className="bg-cream min-h-screen flex flex-col font-body">
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <Navbar />
 
       {/* Hero Banner */}
@@ -374,22 +388,37 @@ export default function VolunteerDashboard() {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-sage-dark">Resource File *</label>
-                <div className="border border-dashed border-sage-dark/25 rounded-card p-4 bg-cream/10 text-center relative hover:bg-cream/30 transition-colors">
+                <div className={`border-2 border-dashed rounded-card p-5 bg-cream/10 text-center relative transition-all ${
+                  file ? "border-sage bg-leaf-light/10" : "border-sage-dark/25 hover:bg-cream/30 hover:border-sage/40"
+                }`}>
                   <input 
                     type="file" 
                     onChange={(e) => e.target.files && setFile(e.target.files[0])}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    accept=".pdf,.ppt,.pptx,.doc,.docx,.jpg,.jpeg,.png,.gif"
                     required={!editingResId}
                   />
-                  <Upload size={24} className="mx-auto text-sage mb-2" />
                   {file ? (
-                    <span className="text-[11px] text-sage-dark font-medium block">
-                      Selected: <strong>{file.name}</strong> ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
+                    <div className="flex flex-col items-center gap-2">
+                      <File size={28} className="text-sage" />
+                      <span className="text-[11px] text-sage-dark font-semibold">
+                        {file.name}
+                      </span>
+                      <span className="text-[10px] text-ink/50 font-mono bg-sage-dark/5 px-2 py-0.5 rounded">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB · {file.type || fileType}
+                      </span>
+                      <span className="text-[10px] text-leaf font-semibold">✓ File ready to upload</span>
+                    </div>
                   ) : (
-                    <span className="text-[11px] text-ink/60 font-mono block">
-                      Click or drag and drop to upload your file
-                    </span>
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload size={24} className="mx-auto text-sage" />
+                      <span className="text-[11px] text-ink/60 font-mono block">
+                        Click or drag &amp; drop to upload your file
+                      </span>
+                      <span className="text-[10px] text-ink/40">
+                        PDF, PPT, DOC, Images accepted
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>

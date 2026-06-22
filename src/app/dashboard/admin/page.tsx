@@ -3,15 +3,36 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useApp, Resource, BrokenLinkReport, Announcement } from "@/context/AppContext";
-import { Shield, CheckCircle, XCircle, AlertTriangle, BarChart3, Globe, Users, Megaphone, Plus, Trash2, FolderMinus, FolderPlus, Info, FileSignature } from "lucide-react";
+import { useApp, Resource, BrokenLinkReport, Announcement, PartnerRequest, SupportTicket } from "@/context/AppContext";
+import {
+  Shield, CheckCircle, XCircle, AlertTriangle, BarChart3, Globe, Users, Megaphone,
+  Plus, Trash2, FolderMinus, FolderPlus, Info, FileSignature, Building, Headphones,
+  UserCheck, Star, Clock, Wrench
+} from "lucide-react";
 import Link from "next/link";
 import { ToastContainer, useToast } from "@/components/Toast";
+import NotificationBell from "@/components/NotificationBell";
 
+
+type AdminTab = "moderation" | "analytics" | "categories" | "reports" | "announcements" | "volunteers" | "partners" | "tickets";
+
+// Tabs available per admin sub-role
+const ROLE_TABS: Record<string, AdminTab[]> = {
+  general: ["moderation", "announcements", "reports", "volunteers", "partners", "analytics", "categories"],
+  tech: ["tickets", "reports"],
+  staff: ["volunteers"],
+};
+
+const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  general: { label: "General Admin", color: "bg-butter-light text-sage-dark", icon: <Shield size={16} /> },
+  tech: { label: "Tech Admin", color: "bg-blush-light text-sage-dark", icon: <Wrench size={16} /> },
+  staff: { label: "Staff Admin", color: "bg-leaf-light text-sage-dark", icon: <UserCheck size={16} /> },
+};
 
 export default function AdminDashboard() {
   const {
     user,
+    login,
     resources,
     updateResourceStatus,
     deleteResource,
@@ -25,13 +46,18 @@ export default function AdminDashboard() {
     analytics,
     volunteerApplications,
     approveVolunteerApplication,
-    rejectVolunteerApplication
+    rejectVolunteerApplication,
+    partnerRequests,
+    updatePartnerRequestStatus,
+    supportTickets,
   } = useApp();
 
   const { toasts, addToast, removeToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<"moderation" | "analytics" | "categories" | "reports" | "announcements" | "volunteers">("moderation");
+  const adminRole = user?.adminRole ?? "general";
+  const allowedTabs = ROLE_TABS[adminRole] ?? ROLE_TABS.general;
 
+  const [activeTab, setActiveTab] = useState<AdminTab>(allowedTabs[0]);
 
   // Rejection state modal
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -56,11 +82,62 @@ export default function AdminDashboard() {
           <Shield size={48} className="text-sage-dark/30 mb-4" />
           <h2 className="font-display text-2xl font-semibold text-sage-dark">Administrator Dashboard</h2>
           <p className="mt-2 text-sm text-ink/65 max-w-sm">
-            This area is restricted to administrators. Please sign in with an admin account to continue.
+            This area is restricted to administrators. Please sign in with an admin account or use a simulation below.
           </p>
+
+          {/* 3 Admin Role Simulation Buttons */}
+          <div className="mt-8 grid gap-4 sm:grid-cols-3 w-full max-w-xl">
+            {[
+              {
+                role: "general" as const,
+                id: "admin-general",
+                name: "General Admin",
+                email: "general@astera.org",
+                label: "General Admin",
+                desc: "Moderation, Announcements, Volunteers, Partners",
+                icon: <Shield size={20} />,
+                color: "bg-butter-light border-butter text-sage-dark",
+              },
+              {
+                role: "tech" as const,
+                id: "admin-tech",
+                name: "Tech Admin",
+                email: "tech@astera.org",
+                label: "Tech Admin",
+                desc: "Support Tickets, Reported Content",
+                icon: <Wrench size={20} />,
+                color: "bg-blush-light border-blush text-sage-dark",
+              },
+              {
+                role: "staff" as const,
+                id: "admin-staff",
+                name: "Staff Admin",
+                email: "staff@astera.org",
+                label: "Staff Admin",
+                desc: "Review & Accept Participants",
+                icon: <UserCheck size={20} />,
+                color: "bg-leaf-light border-leaf text-sage-dark",
+              },
+            ].map((item) => (
+              <button
+                key={item.role}
+                onClick={() => {
+                  login(item.id, item.name, item.email, "admin", item.role);
+                }}
+                className={`flex flex-col items-center gap-2 rounded-card border-2 p-5 text-center transition-all hover:-translate-y-1 hover:shadow-lg ${item.color}`}
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/60 shadow-sm">
+                  {item.icon}
+                </span>
+                <span className="font-display font-bold text-sm">{item.label}</span>
+                <span className="text-[10px] text-ink/65 leading-tight">{item.desc}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="mt-6">
-            <Link href="/login" className="rounded-card bg-sage-dark text-paper px-6 py-2.5 text-xs font-semibold shadow">
-              Go to Login Page
+            <Link href="/login" className="rounded-card border-2 border-sage-dark/15 text-sage-dark px-6 py-2.5 text-xs font-semibold">
+              Sign In with Admin Account
             </Link>
           </div>
         </div>
@@ -78,8 +155,6 @@ export default function AdminDashboard() {
     addToast("Resource approved successfully! It is now live.", "check");
   };
 
-
-
   // Reject trigger
   const triggerReject = (id: string) => {
     setRejectId(id);
@@ -95,8 +170,6 @@ export default function AdminDashboard() {
     addToast("Resource rejected. Feedback sent to contributor.");
   };
 
-
-
   // Add Category Handler
   const handleAddCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,8 +178,6 @@ export default function AdminDashboard() {
     setCatValue("");
     addToast("Category added successfully!", "check");
   };
-
-
 
   // Post Announcement Handler
   const handleAnnouncementSubmit = (e: React.FormEvent) => {
@@ -118,19 +189,30 @@ export default function AdminDashboard() {
     addToast("Announcement published!", "check");
   };
 
-
-
   // Sort resources for Analytics
   const popularResources = [...resources]
     .filter((res) => res.status === "approved")
     .sort((a, b) => b.downloadsCount - a.downloadsCount)
     .slice(0, 5);
 
+  const roleInfo = ROLE_LABELS[adminRole];
+
+  // All tab definitions (filtered per role)
+  const allTabs = [
+    { id: "moderation" as AdminTab, label: "Moderation Queue", count: pendingResources.length },
+    { id: "analytics" as AdminTab, label: "Site Analytics", count: null },
+    { id: "categories" as AdminTab, label: "Category Manager", count: null },
+    { id: "reports" as AdminTab, label: "Error Reports", count: brokenReports.filter((r) => r.status === "open").length },
+    { id: "announcements" as AdminTab, label: "Announcements", count: announcements.length },
+    { id: "volunteers" as AdminTab, label: "Volunteer Apps", count: volunteerApplications.filter((a) => a.status === "pending").length },
+    { id: "partners" as AdminTab, label: "Partner Requests", count: partnerRequests.filter((r) => r.status === "pending").length },
+    { id: "tickets" as AdminTab, label: "Support Tickets", count: supportTickets.filter((t) => t.status === "open").length },
+  ].filter((tab) => allowedTabs.includes(tab.id));
+
   return (
     <main className="bg-cream min-h-screen flex flex-col font-body">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
       <Navbar />
-
 
       {/* Admin Title Banner */}
       <section className="bg-paper border-b border-sage-dark/10 py-10 px-6 lg:px-10">
@@ -143,20 +225,40 @@ export default function AdminDashboard() {
               <h1 className="font-display text-2xl font-bold text-sage-dark sm:text-3xl">
                 Administrator Panel
               </h1>
-              <p className="mt-1 text-xs font-mono uppercase tracking-wider text-ink/50">
-                Logged in: {user.name} &bull; Moderating astera library
-              </p>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <p className="text-xs font-mono uppercase tracking-wider text-ink/50">
+                  Logged in: {user.name}
+                </p>
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${roleInfo?.color}`}>
+                  {roleInfo?.icon}
+                  {roleInfo?.label}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Quick numbers */}
-          <div className="flex flex-wrap gap-4 text-xs font-mono">
-            <span className="bg-sage-dark/5 px-3 py-1.5 rounded border border-sage-dark/10 text-sage-dark font-semibold">
-              Pending Queue: {pendingResources.length}
-            </span>
-            <span className="bg-rose-50 px-3 py-1.5 rounded border border-rose-100 text-rose-700 font-semibold">
-              Open Reports: {brokenReports.filter((r) => r.status === "open").length}
-            </span>
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Notification Bell for Admin */}
+            <NotificationBell userId={user.id} />
+
+            {/* Quick numbers */}
+            <div className="flex flex-wrap gap-4 text-xs font-mono">
+              {allowedTabs.includes("moderation") && (
+                <span className="bg-sage-dark/5 px-3 py-1.5 rounded border border-sage-dark/10 text-sage-dark font-semibold">
+                  Pending Queue: {pendingResources.length}
+                </span>
+              )}
+              {allowedTabs.includes("reports") && (
+                <span className="bg-rose-50 px-3 py-1.5 rounded border border-rose-100 text-rose-700 font-semibold">
+                  Open Reports: {brokenReports.filter((r) => r.status === "open").length}
+                </span>
+              )}
+              {allowedTabs.includes("tickets") && (
+                <span className="bg-blush-light px-3 py-1.5 rounded border border-blush/30 text-sage-dark font-semibold">
+                  Open Tickets: {supportTickets.filter((t) => t.status === "open").length}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -164,18 +266,10 @@ export default function AdminDashboard() {
       {/* Admin Tabs */}
       <section className="flex-1 mx-auto max-w-7xl w-full px-6 py-10 lg:px-10">
         <div className="border-b border-sage-dark/10 pb-px mb-8 flex flex-wrap gap-1">
-          {[
-            { id: "moderation", label: "Moderation Queue", count: pendingResources.length },
-            { id: "analytics", label: "Site Analytics", count: null },
-            { id: "categories", label: "Category Manager", count: null },
-            { id: "reports", label: "Error Reports", count: brokenReports.filter((r) => r.status === "open").length },
-            { id: "announcements", label: "Announcements", count: announcements.length },
-            { id: "volunteers", label: "Volunteer Apps", count: volunteerApplications.filter((a) => a.status === "pending").length }
-          ].map((tab) => (
-
+          {allTabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`border-b-2 px-5 py-3 text-sm font-semibold transition-all ${
                 activeTab === tab.id
                   ? "border-sage-dark text-sage-dark bg-paper rounded-t-card"
@@ -185,7 +279,9 @@ export default function AdminDashboard() {
               {tab.label}
               {tab.count !== null && (
                 <span className={`ml-1.5 rounded-full px-2 py-0.5 text-[10px] font-mono ${
-                  tab.id === "reports" && tab.count > 0 ? "bg-rose-100 text-rose-700 font-bold animate-pulse" : "bg-sage-dark/5 text-ink/60"
+                  (tab.id === "reports" || tab.id === "tickets") && tab.count > 0
+                    ? "bg-rose-100 text-rose-700 font-bold animate-pulse"
+                    : "bg-sage-dark/5 text-ink/60"
                 }`}>
                   {tab.count}
                 </span>
@@ -196,7 +292,7 @@ export default function AdminDashboard() {
 
         {/* Tab Panel Render */}
         <div className="grid gap-8">
-          
+
           {/* Moderation Queue */}
           {activeTab === "moderation" && (
             <div className="space-y-6">
@@ -225,10 +321,10 @@ export default function AdminDashboard() {
 
                         <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-ink/50 bg-cream/30 p-2 rounded w-fit">
                           <strong className="text-sage-dark">Path:</strong>
-                          <span>{res.country}</span> &bull; 
-                          <span>{res.curriculum}</span> &bull; 
-                          <span>{res.grade}</span> &bull; 
-                          <span>{res.subject}</span> &bull; 
+                          <span>{res.country}</span> &bull;
+                          <span>{res.curriculum}</span> &bull;
+                          <span>{res.grade}</span> &bull;
+                          <span>{res.subject}</span> &bull;
                           <span>{res.topic}</span>
                         </div>
 
@@ -244,7 +340,7 @@ export default function AdminDashboard() {
                           className="flex items-center justify-center gap-1.5 rounded-card bg-leaf-light px-4 py-2 text-xs font-semibold text-sage-dark transition-colors hover:bg-leaf"
                         >
                           <CheckCircle size={13} />
-                          <span>Approve & Publish</span>
+                          <span>Approve &amp; Publish</span>
                         </button>
                         <button
                           onClick={() => triggerReject(res.id)}
@@ -269,7 +365,7 @@ export default function AdminDashboard() {
                     </h3>
                     <form onSubmit={handleRejectSubmit} className="space-y-4">
                       <p className="text-xs text-ink/65 leading-relaxed">
-                        Provide instructions on what the volunteer needs to fix in order to get their notes approved (e.g. correct file tags, fix typos, correct curriculum).
+                        Provide instructions on what the volunteer needs to fix in order to get their notes approved.
                       </p>
                       <textarea
                         value={rejectReason}
@@ -304,8 +400,6 @@ export default function AdminDashboard() {
           {/* Analytics Sub-Dashboard */}
           {activeTab === "analytics" && (
             <div className="space-y-6">
-              
-              {/* Numeric Analytics Blocks */}
               <div className="grid gap-6 sm:grid-cols-3">
                 <div className="bg-paper p-5 rounded-card border border-sage-dark/8 shadow-card flex items-center gap-4">
                   <span className="flex h-12 w-12 items-center justify-center rounded-card bg-leaf-light text-sage-dark shrink-0">
@@ -338,10 +432,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Grid: Popular resources, active countries */}
               <div className="grid gap-6 lg:grid-cols-2">
-                
-                {/* Popular files */}
                 <div className="bg-paper p-6 rounded-card border border-sage-dark/10 shadow-card">
                   <h3 className="font-display font-semibold text-sage-dark border-b border-sage-dark/8 pb-3 mb-4 flex items-center gap-2">
                     <BarChart3 size={16} />
@@ -363,7 +454,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Simulated demographics metrics */}
                 <div className="bg-paper p-6 rounded-card border border-sage-dark/10 shadow-card">
                   <h3 className="font-display font-semibold text-sage-dark border-b border-sage-dark/8 pb-3 mb-4 flex items-center gap-2">
                     <Globe size={16} />
@@ -390,7 +480,6 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 </div>
-
               </div>
             </div>
           )}
@@ -398,13 +487,12 @@ export default function AdminDashboard() {
           {/* Category Manager */}
           {activeTab === "categories" && (
             <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
-              {/* Form to add categories */}
               <div className="bg-paper p-6 rounded-card border border-sage-dark/10 shadow-card h-fit">
                 <h3 className="font-display font-semibold text-sage-dark border-b border-sage-dark/8 pb-3 mb-4 flex items-center gap-1.5">
                   <FolderPlus size={16} />
                   Add New Category
                 </h3>
-                
+
                 <form onSubmit={handleAddCategorySubmit} className="space-y-4">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-sage-dark">Category Type</label>
@@ -431,9 +519,7 @@ export default function AdminDashboard() {
                       >
                         <option value="">Choose Country</option>
                         {categories.countries.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
+                          <option key={c} value={c}>{c}</option>
                         ))}
                       </select>
                     </div>
@@ -461,17 +547,15 @@ export default function AdminDashboard() {
                 </form>
               </div>
 
-              {/* Taxonomy display */}
               <div className="bg-paper p-6 rounded-card border border-sage-dark/10 shadow-card">
                 <h3 className="font-display font-semibold text-sage-dark border-b border-sage-dark/8 pb-3 mb-4 flex items-center gap-1.5">
                   <FolderMinus size={16} />
                   Active Library Taxonomy
                 </h3>
-                
+
                 <div className="space-y-6">
-                  {/* Countries & Curricula */}
                   <div>
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage block mb-2">Countries & Curricula Map</span>
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage block mb-2">Countries &amp; Curricula Map</span>
                     <div className="grid gap-4 sm:grid-cols-2">
                       {categories.countries.map((country) => (
                         <div key={country} className="p-3 bg-cream/15 border border-sage-dark/5 rounded-card text-xs">
@@ -490,7 +574,6 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Grades & Subjects */}
                   <div className="grid gap-6 sm:grid-cols-2 border-t border-sage-dark/8 pt-4">
                     <div>
                       <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage block mb-2">Grades / Classes</span>
@@ -510,7 +593,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </div>
-
                 </div>
               </div>
             </div>
@@ -559,7 +641,7 @@ export default function AdminDashboard() {
                               </span>
                             </div>
                           </div>
-                          
+
                           {isOpen && (
                             <button
                               onClick={() => {
@@ -568,11 +650,9 @@ export default function AdminDashboard() {
                               }}
                               className="rounded-card bg-leaf-light px-3.5 py-1.5 text-xs font-semibold text-sage-dark transition-colors hover:bg-leaf shrink-0"
                             >
-
                               Mark Resolved
                             </button>
                           )}
-
                         </div>
                       );
                     })}
@@ -585,8 +665,6 @@ export default function AdminDashboard() {
           {/* Announcements Manager */}
           {activeTab === "announcements" && (
             <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
-              
-              {/* Form to create announcement */}
               <div className="bg-paper p-6 rounded-card border border-sage-dark/10 shadow-card h-fit">
                 <h3 className="font-display font-semibold text-sage-dark border-b border-sage-dark/8 pb-3 mb-4 flex items-center gap-1.5">
                   <Megaphone size={16} />
@@ -640,7 +718,6 @@ export default function AdminDashboard() {
                 </form>
               </div>
 
-              {/* Announcements List */}
               <div className="bg-paper p-6 rounded-card border border-sage-dark/10 shadow-card">
                 <h3 className="font-display font-semibold text-sage-dark border-b border-sage-dark/8 pb-3 mb-4">
                   Active Banners List
@@ -679,17 +756,14 @@ export default function AdminDashboard() {
                             className="text-rose-600 hover:text-rose-800 self-center"
                             title="Remove Announcement"
                           >
-
                             <Trash2 size={15} />
                           </button>
-
                         </div>
                       );
                     })}
                   </div>
                 )}
               </div>
-
             </div>
           )}
 
@@ -750,7 +824,6 @@ export default function AdminDashboard() {
                             }}
                             className="flex items-center justify-center gap-1.5 rounded-card bg-leaf-light px-4 py-2 text-xs font-semibold text-sage-dark transition-colors hover:bg-leaf"
                           >
-
                             <CheckCircle size={14} />
                             Approve Access
                           </button>
@@ -764,7 +837,6 @@ export default function AdminDashboard() {
                             }}
                             className="flex items-center justify-center gap-1.5 rounded-card border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
                           >
-
                             <XCircle size={14} />
                             Reject
                           </button>
@@ -777,6 +849,141 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Partner Requests Tab — General Admin only */}
+          {activeTab === "partners" && (
+            <div className="space-y-4">
+              {partnerRequests.length === 0 ? (
+                <div className="text-center py-16 bg-paper rounded-card border-2 border-dashed border-sage-dark/10 p-6">
+                  <Building size={40} className="mx-auto text-sage/40" />
+                  <h3 className="mt-4 font-display text-lg font-semibold text-sage-dark">No Partnership Requests</h3>
+                  <p className="mt-2 text-xs text-ink/60 max-w-xs mx-auto">
+                    When organizations submit a partnership inquiry via the Partner page, their requests appear here.
+                  </p>
+                  <Link
+                    href="/partner"
+                    className="mt-6 inline-flex items-center gap-1.5 rounded-card bg-sage-dark px-4 py-2 text-xs font-semibold text-paper"
+                  >
+                    View Partner Page
+                  </Link>
+                </div>
+              ) : (
+                <div className="bg-paper rounded-card border border-sage-dark/10 overflow-hidden shadow-card">
+                  <div className="divide-y divide-sage-dark/8">
+                    {partnerRequests.map((req) => (
+                      <div key={req.id} className="p-5 flex flex-col md:flex-row gap-4 justify-between">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h3 className="font-display font-bold text-sage-dark">{req.orgName}</h3>
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                              req.status === "pending" ? "bg-butter-light text-sage-dark" :
+                              req.status === "accepted" ? "bg-leaf-light text-sage-dark" :
+                              req.status === "reviewed" ? "bg-blush-light text-sage-dark" :
+                              "bg-rose-100 text-rose-700"
+                            }`}>
+                              {req.status}
+                            </span>
+                          </div>
+                          <div className="text-xs text-ink/60 font-mono">
+                            Contact: {req.contactName} &bull; {req.email} &bull; Type: {req.type}
+                          </div>
+                          <p className="text-xs text-ink/75 bg-cream/30 p-3 rounded-card border border-sage-dark/5 italic">
+                            &ldquo;{req.details}&rdquo;
+                          </p>
+                          <span className="text-[10px] text-ink/40 font-mono">Submitted: {req.date}</span>
+                        </div>
+
+                        {req.status === "pending" && (
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <button
+                              onClick={() => {
+                                updatePartnerRequestStatus(req.id, "accepted");
+                                addToast(`Accepted partnership request from ${req.orgName}`, "check");
+                              }}
+                              className="flex items-center justify-center gap-1.5 rounded-card bg-leaf-light px-4 py-2 text-xs font-semibold text-sage-dark transition-colors hover:bg-leaf"
+                            >
+                              <CheckCircle size={14} />
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => {
+                                updatePartnerRequestStatus(req.id, "reviewed");
+                                addToast(`Marked as reviewed: ${req.orgName}`);
+                              }}
+                              className="flex items-center justify-center gap-1.5 rounded-card border border-sage-dark/15 px-4 py-2 text-xs font-semibold text-sage-dark transition-colors hover:bg-cream"
+                            >
+                              Mark Reviewed
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Support Tickets Tab — Tech Admin only */}
+          {activeTab === "tickets" && (
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3 mb-6">
+                {[
+                  { label: "Open Tickets", count: supportTickets.filter(t => t.status === "open").length, color: "bg-rose-50 border-rose-100 text-rose-700" },
+                  { label: "In Progress", count: supportTickets.filter(t => t.status === "in_progress").length, color: "bg-butter-light border-butter/30 text-sage-dark" },
+                  { label: "Resolved", count: supportTickets.filter(t => t.status === "resolved").length, color: "bg-leaf-light border-leaf/30 text-sage-dark" },
+                ].map(stat => (
+                  <div key={stat.label} className={`p-4 rounded-card border ${stat.color} text-center`}>
+                    <span className="text-2xl font-bold font-display block">{stat.count}</span>
+                    <span className="text-xs font-mono uppercase tracking-wider">{stat.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-paper rounded-card border border-sage-dark/10 overflow-hidden shadow-card">
+                <div className="divide-y divide-sage-dark/8">
+                  {supportTickets.map((ticket) => (
+                    <div key={ticket.id} className="p-5 flex flex-col sm:flex-row gap-4 justify-between items-start">
+                      <div className="flex items-start gap-3 flex-1">
+                        <span className={`mt-1 flex h-7 w-7 items-center justify-center rounded shrink-0 ${
+                          ticket.status === "open" ? "bg-rose-50 text-rose-600 border border-rose-100" :
+                          ticket.status === "in_progress" ? "bg-butter-light text-sage-dark" :
+                          "bg-leaf-light/20 text-leaf"
+                        }`}>
+                          <Headphones size={14} />
+                        </span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-semibold text-sage-dark text-sm">{ticket.subject}</h4>
+                            <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${
+                              ticket.priority === "high" ? "bg-rose-100 text-rose-700" :
+                              ticket.priority === "medium" ? "bg-butter-light text-sage-dark" :
+                              "bg-sage-dark/5 text-ink/50"
+                            }`}>
+                              {ticket.priority.toUpperCase()} PRIORITY
+                            </span>
+                            <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${
+                              ticket.status === "open" ? "bg-rose-100 text-rose-700" :
+                              ticket.status === "in_progress" ? "bg-butter-light text-sage-dark" :
+                              "bg-leaf/10 text-leaf"
+                            }`}>
+                              {ticket.status.replace("_", " ").toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="text-xs text-ink/75 bg-cream/35 p-2 rounded border">
+                            {ticket.description}
+                          </p>
+                          <span className="text-[10px] text-ink/40 font-mono block">
+                            From: {ticket.userEmail} &bull; {ticket.date}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </section>
 
@@ -784,4 +991,3 @@ export default function AdminDashboard() {
     </main>
   );
 }
-

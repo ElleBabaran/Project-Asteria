@@ -9,7 +9,6 @@ import NotificationBell from "@/components/NotificationBell";
 
 const navLinks = [
   { label: "Explore", href: "/explore" },
-  { label: "How it works", href: "/#how-it-works" },
   { label: "Volunteer", href: "/volunteer-apply" },
   { label: "About", href: "/about" },
 ];
@@ -32,6 +31,19 @@ export default function Navbar() {
   const getDashboardHref = () => {
     if (!user) return "/login";
     return `/dashboard/${user.role}`;
+  };
+
+  // Smooth scroll to #how-it-works from any page
+  const handleHowItWorks = (e: React.MouseEvent, closeMobile?: () => void) => {
+    e.preventDefault();
+    if (closeMobile) closeMobile();
+    if (pathname === "/") {
+      // Already on homepage — just scroll
+      document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      // Navigate to homepage then scroll after load
+      router.push("/#how-it-works");
+    }
   };
 
   return (
@@ -70,6 +82,13 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          <a
+            href="/#how-it-works"
+            onClick={(e) => handleHowItWorks(e)}
+            className="link-sweep text-sm font-medium text-ink/70 transition-colors hover:text-sage-dark cursor-pointer"
+          >
+            How it works
+          </a>
         </div>
 
         {/* Desktop Buttons */}
@@ -154,11 +173,18 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href="/#how-it-works"
+              onClick={(e) => handleHowItWorks(e, () => setOpen(false))}
+              className="link-sweep text-sm font-medium text-ink/80 transition-colors hover:text-sage-dark cursor-pointer"
+            >
+              How it works
+            </a>
             <div className="mt-2 flex flex-col gap-3 border-t border-sage-dark/10 pt-4">
               {user ? (
                 <>
                   <div className="flex items-center gap-2">
-                    <NotificationBell userId={user.email} />
+                    <NotificationBell userId={user.id} />
                     <span className="text-xs text-ink/40">Notifications</span>
                   </div>
                   <Link

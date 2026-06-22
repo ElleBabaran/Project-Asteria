@@ -47,8 +47,30 @@ export interface User {
   name: string;
   email: string;
   role: "student" | "volunteer" | "admin" | "guest";
+  adminRole?: "general" | "tech" | "staff";
   image?: string;
   bio?: string;
+}
+
+export interface PartnerRequest {
+  id: string;
+  orgName: string;
+  contactName: string;
+  email: string;
+  type: string;
+  details: string;
+  date: string;
+  status: "pending" | "reviewed" | "accepted" | "rejected";
+}
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  description: string;
+  userEmail: string;
+  date: string;
+  status: "open" | "in_progress" | "resolved";
+  priority: "low" | "medium" | "high";
 }
 
 export interface Announcement {
@@ -73,7 +95,7 @@ export interface VolunteerApplication {
 
 interface AppContextType {
   user: User | null;
-  login: (id: string, name: string, email: string, role: "student" | "volunteer" | "admin") => void;
+  login: (id: string, name: string, email: string, role: "student" | "volunteer" | "admin", adminRole?: "general" | "tech" | "staff") => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   resources: Resource[];
@@ -110,6 +132,10 @@ interface AppContextType {
   submitVolunteerApplication: (app: Omit<VolunteerApplication, "id" | "date" | "status">) => void;
   approveVolunteerApplication: (id: string) => void;
   rejectVolunteerApplication: (id: string, note: string) => void;
+  partnerRequests: PartnerRequest[];
+  submitPartnerRequest: (req: Omit<PartnerRequest, "id" | "date" | "status">) => void;
+  updatePartnerRequestStatus: (id: string, status: PartnerRequest["status"]) => void;
+  supportTickets: SupportTicket[];
 }
 
 const initialResources: Resource[] = [
@@ -379,6 +405,38 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   });
 
   const [volunteerApplications, setVolunteerApplications] = useState<VolunteerApplication[]>([]);
+  const [partnerRequests, setPartnerRequests] = useState<PartnerRequest[]>([]);
+
+  // Sample support tickets for Tech Admin demo
+  const [supportTickets] = useState<SupportTicket[]>([
+    {
+      id: "ticket-1",
+      subject: "Cannot download PDF files on mobile",
+      description: "When I tap the download button on my phone, nothing happens. The file doesn't open or save.",
+      userEmail: "mia.r@student.org",
+      date: "2026-06-20",
+      status: "open",
+      priority: "high"
+    },
+    {
+      id: "ticket-2",
+      subject: "Search filter not working for 'Chemistry'",
+      description: "Using the subject filter for Chemistry returns no results even though there are chemistry materials listed.",
+      userEmail: "james.t@school.edu",
+      date: "2026-06-19",
+      status: "in_progress",
+      priority: "medium"
+    },
+    {
+      id: "ticket-3",
+      subject: "Account registration email not received",
+      description: "Registered 2 days ago with my school email but haven't received the confirmation. Tried resending.",
+      userEmail: "lena.s@gmail.com",
+      date: "2026-06-18",
+      status: "resolved",
+      priority: "low"
+    }
+  ]);
 
   // Load from localStorage on client side mount
   useEffect(() => {
@@ -390,6 +448,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     const cachedReports = localStorage.getItem("astera_reports");
     const cachedAnnouncements = localStorage.getItem("astera_announcements");
     const cachedCategories = localStorage.getItem("astera_categories");
+    const cachedPartnerReqs = localStorage.getItem("astera_partner_requests");
 
     if (cachedUser) setUser(JSON.parse(cachedUser));
     if (cachedResources) setResources(JSON.parse(cachedResources));
@@ -401,6 +460,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     if (cachedCategories) setCategories(JSON.parse(cachedCategories));
     const cachedVolApps = localStorage.getItem("astera_vol_applications");
     if (cachedVolApps) setVolunteerApplications(JSON.parse(cachedVolApps));
+    if (cachedPartnerReqs) setPartnerRequests(JSON.parse(cachedPartnerReqs));
 
     // Simulate ticking visitors count for live feel
     const interval = setInterval(() => {
@@ -418,8 +478,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const login = (id: string, name: string, email: string, role: "student" | "volunteer" | "admin") => {
-    const newUser: User = { id, name, email, role };
+  const login = (id: string, name: string, email: string, role: "student" | "volunteer" | "admin", adminRole?: "general" | "tech" | "staff") => {
+    const newUser: User = { id, name, email, role, adminRole };
     setUser(newUser);
     saveToLocal("astera_user", newUser);
 
@@ -643,6 +703,26 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     saveToLocal("astera_vol_applications", next);
   };
 
+  const submitPartnerRequest = (req: Omit<PartnerRequest, "id" | "date" | "status">) => {
+    const newReq: PartnerRequest = {
+      ...req,
+      id: `partner-${Date.now()}`,
+      date: new Date().toISOString().split("T")[0],
+      status: "pending",
+    };
+    const next = [newReq, ...partnerRequests];
+    setPartnerRequests(next);
+    saveToLocal("astera_partner_requests", next);
+  };
+
+  const updatePartnerRequestStatus = (id: string, status: PartnerRequest["status"]) => {
+    const next = partnerRequests.map((r) =>
+      r.id === id ? { ...r, status } : r
+    );
+    setPartnerRequests(next);
+    saveToLocal("astera_partner_requests", next);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -675,6 +755,10 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         submitVolunteerApplication,
         approveVolunteerApplication,
         rejectVolunteerApplication,
+        partnerRequests,
+        submitPartnerRequest,
+        updatePartnerRequestStatus,
+        supportTickets,
       }}
     >
       {children}

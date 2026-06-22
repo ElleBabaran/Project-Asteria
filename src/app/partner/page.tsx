@@ -4,8 +4,10 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Globe, Building, Mail, Award, CheckCircle } from "lucide-react";
+import { useApp } from "@/context/AppContext";
 
 export default function PartnerPage() {
+  const { submitPartnerRequest } = useApp();
   const [orgName, setOrgName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,25 +25,21 @@ export default function PartnerPage() {
 
     setIsSending(true);
 
+    // Always save to AppContext first (visible to General Admin)
+    submitPartnerRequest({ orgName, contactName, email, type, details });
+
+    // Also try to save to DB (non-blocking)
     try {
-      const res = await fetch("/api/partner", {
+      await fetch("/api/partner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orgName, contactName, email, type, details }),
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || "Failed to submit partnership request. Please try again.");
-        return;
-      }
-
-      setIsSubmitted(true);
-    } catch (error) {
-      console.error("[partner submit]", error);
-      alert("Unable to submit request. Please check your connection and try again.");
+    } catch (_) {
+      // silently ignore — already saved locally
     } finally {
       setIsSending(false);
+      setIsSubmitted(true);
     }
   };
 

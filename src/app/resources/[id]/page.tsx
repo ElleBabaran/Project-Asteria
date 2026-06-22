@@ -4,14 +4,16 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useApp, Resource } from "@/context/AppContext";
-import { ArrowLeft, Download, Heart, Star, Calendar, User, FileText, AlertTriangle, Send, CheckCircle, LogIn } from "lucide-react";
+import { ArrowLeft, Download, Heart, Star, Calendar, User, FileText, AlertTriangle, Send, CheckCircle, LogIn, Eye, File } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ToastContainer, useToast } from "@/components/Toast";
 
 export default function ResourceDetailsPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const { user, resources, savedResources, toggleFavorite, recordDownload, recordView, addComment, reportBrokenLink } = useApp();
   const router = useRouter();
+  const { toasts, addToast, removeToast } = useToast();
 
   // Find target resource
   const resource = resources.find((res) => res.id === id);
@@ -91,7 +93,7 @@ const handleDownload = () => {
     addComment(resource.id, commentText.trim(), rating);
     setCommentText("");
     setRating(5);
-    alert("Thank you for your feedback!");
+    addToast("Thank you for your feedback!", "check");
   };
 
   const handleReportSubmit = async (e: React.FormEvent) => {
@@ -130,7 +132,12 @@ const handleDownload = () => {
   };
 
   const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
+    // If referrer is from the same site, go back. Otherwise, go to Explore.
+    const isInternalNav =
+      typeof document !== "undefined" &&
+      document.referrer &&
+      document.referrer.includes(window.location.hostname);
+    if (isInternalNav) {
       router.back();
     } else {
       router.push("/explore");
@@ -148,6 +155,7 @@ const handleDownload = () => {
 
   return (
     <main className="bg-cream min-h-screen flex flex-col font-body">
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <Navbar />
 
       <section className="flex-1 mx-auto max-w-6xl w-full px-6 py-8 lg:px-10">
@@ -229,59 +237,109 @@ const handleDownload = () => {
               </div>
             </div>
 
-            {/* Document Mockup Preview Panel */}
-            <div className="rounded-card border-2 border-sage-dark/8 bg-paper p-6 shadow-card overflow-hidden">
-              <div className="flex items-center justify-between border-b border-sage-dark/10 pb-4 mb-4">
-                <span className="font-display font-semibold text-sage-dark">Document Preview</span>
-                <span className="text-xs text-ink/40 font-mono">Page 1 of 3 (Preview Mode)</span>
+            {/* Document Preview Panel */}
+            <div className="rounded-card border-2 border-sage-dark/8 bg-paper shadow-card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-sage-dark/10 px-6 py-4">
+                <span className="font-display font-semibold text-sage-dark flex items-center gap-2">
+                  <Eye size={16} className="text-sage" />
+                  Document Preview
+                </span>
+                <span className="text-xs text-ink/40 font-mono">{resource.fileType} · {resource.fileSize}</span>
               </div>
 
-              {/* Structured mock content of document */}
-              <div className="bg-cream/40 rounded-card p-6 border border-sage-dark/5 relative h-96 overflow-y-auto">
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-paper to-transparent pointer-events-none flex items-end justify-center pb-4">
-                  <span className="bg-sage-dark text-paper px-3 py-1.5 rounded-full text-xs font-semibold shadow">
-                    Download file to view all pages
-                  </span>
+              {/* PDF embed via iframe */}
+              {resource.fileUrl && resource.fileUrl.toLowerCase().endsWith(".pdf") ? (
+                <div className="relative">
+                  <iframe
+                    src={`${resource.fileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                    className="w-full h-[480px] border-0"
+                    title={resource.title}
+                  />
+                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-paper to-transparent pointer-events-none flex items-end justify-center pb-3">
+                    <span className="bg-sage-dark text-paper px-3 py-1.5 rounded-full text-xs font-semibold shadow">
+                      Download to view all pages
+                    </span>
+                  </div>
                 </div>
-
-                <div className="space-y-6 max-w-prose mx-auto">
-                  <div className="border-b border-sage-dark/10 pb-3 text-center">
-                    <h2 className="font-display text-xl font-bold text-sage-dark uppercase tracking-tight">{resource.title}</h2>
-                    <p className="font-mono text-[9px] text-ink/50 uppercase tracking-widest mt-1">
-                      {resource.subject} &middot; {resource.grade} &middot; {resource.curriculum}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-sm text-sage-dark">1. Introduction to {resource.topic}</h3>
-                    <p className="text-xs text-ink/80 leading-relaxed">
-                      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam sodales nunc ac nibh imperdiet eleifend.
-                      Integer tempor, ex vel condimentum pharetra, lectus velit egestas augue, in semper risus metus non felis.
-                      Proin ut lacinia lacus. Etiam at tortor luctus, volutpat mi sed, tristique eros.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-sm text-sage-dark">2. Core Concepts</h3>
-                    <p className="text-xs text-ink/80 leading-relaxed">
-                      Sed pretium mi eu purus fermentum, ut eleifend elit dictum. Quisque cursus ipsum in magna interdum elementum.
-                      Donec gravida lorem ut felis scelerisque rhoncus. Cras non metus sodales, pellentesque massa convallis, varius sapien:
-                    </p>
-                    <ul className="list-disc pl-5 text-xs text-ink/85 space-y-1">
-                      <li>Key Definition A: Basic fundamental logic rules.</li>
-                      <li>Key Definition B: Practical application cases.</li>
-                      <li>Diagram breakdown: Illustrative system mapping.</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-sage-light/20 p-4 rounded-card border border-sage/10 text-center">
-                    <h4 className="font-display text-xs font-bold text-sage-dark">SIMULATED CLASSROOM PREVIEW</h4>
-                    <p className="text-[10px] text-sage-dark/70 mt-1">
-                      This represents a structural preview of the worksheets or classroom notes provided by {resource.contributorName}.
+              ) : resource.fileUrl ? (
+                /* Non-PDF file: show file info and description */
+                <div className="p-6">
+                  <div className="bg-cream/50 rounded-card border border-sage-dark/8 p-6 flex flex-col items-center gap-4 text-center">
+                    <File size={40} className="text-sage-dark/40" />
+                    <div>
+                      <h3 className="font-display font-bold text-sage-dark">{resource.title}</h3>
+                      <p className="text-xs text-ink/50 font-mono mt-1">{resource.fileType} Document · {resource.fileSize}</p>
+                    </div>
+                    <div className="w-full text-left space-y-3 border-t border-sage-dark/8 pt-4">
+                      <div>
+                        <h4 className="text-xs font-bold text-sage-dark uppercase tracking-wider mb-1">About this Resource</h4>
+                        <p className="text-xs text-ink/75 leading-relaxed">{resource.description}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                        <span className="bg-sage-dark/5 px-2 py-1 rounded text-ink/60">{resource.subject}</span>
+                        <span className="bg-sage-dark/5 px-2 py-1 rounded text-ink/60">{resource.grade}</span>
+                        <span className="bg-sage-dark/5 px-2 py-1 rounded text-ink/60">{resource.curriculum}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-ink/45 italic">
+                      Preview not available for {resource.fileType} files — download to view the full document.
                     </p>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* No fileUrl: show real resource content */
+                <div className="bg-cream/40 p-6 border-t border-sage-dark/5 relative h-96 overflow-y-auto">
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-paper to-transparent pointer-events-none flex items-end justify-center pb-4">
+                    <span className="bg-sage-dark text-paper px-3 py-1.5 rounded-full text-xs font-semibold shadow">
+                      Download file to view all pages
+                    </span>
+                  </div>
+
+                  <div className="space-y-6 max-w-prose mx-auto">
+                    <div className="border-b border-sage-dark/10 pb-3 text-center">
+                      <h2 className="font-display text-xl font-bold text-sage-dark uppercase tracking-tight">{resource.title}</h2>
+                      <p className="font-mono text-[9px] text-ink/50 uppercase tracking-widest mt-1">
+                        {resource.subject} &middot; {resource.grade} &middot; {resource.curriculum}
+                      </p>
+                      <p className="text-[10px] text-ink/40 mt-1">Topic: {resource.topic}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm text-sage-dark">About This Resource</h3>
+                      <p className="text-xs text-ink/80 leading-relaxed">{resource.description}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm text-sage-dark">Resource Details</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-paper rounded p-3 border border-sage-dark/8">
+                          <span className="text-[9px] font-mono uppercase tracking-wider text-ink/40 block">File Type</span>
+                          <span className="text-xs font-semibold text-sage-dark">{resource.fileType}</span>
+                        </div>
+                        <div className="bg-paper rounded p-3 border border-sage-dark/8">
+                          <span className="text-[9px] font-mono uppercase tracking-wider text-ink/40 block">File Size</span>
+                          <span className="text-xs font-semibold text-sage-dark">{resource.fileSize}</span>
+                        </div>
+                        <div className="bg-paper rounded p-3 border border-sage-dark/8">
+                          <span className="text-[9px] font-mono uppercase tracking-wider text-ink/40 block">Contributor</span>
+                          <span className="text-xs font-semibold text-sage-dark">{resource.contributorName}</span>
+                        </div>
+                        <div className="bg-paper rounded p-3 border border-sage-dark/8">
+                          <span className="text-[9px] font-mono uppercase tracking-wider text-ink/40 block">Uploaded</span>
+                          <span className="text-xs font-semibold text-sage-dark">{resource.uploadDate}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-sage-light/20 p-4 rounded-card border border-sage/10 text-center">
+                      <h4 className="font-display text-xs font-bold text-sage-dark">RESOURCE PREVIEW</h4>
+                      <p className="text-[10px] text-sage-dark/70 mt-1">
+                        Contributed by {resource.contributorName} · {resource.country} · {resource.curriculum}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>

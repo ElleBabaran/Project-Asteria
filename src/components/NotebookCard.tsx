@@ -141,6 +141,7 @@ interface NotebookCardProps {
   isFavorited?: boolean;
   showFavorite?: boolean;
   rating?: string | number;
+  serialNumber?: number;
 }
 
 export default function NotebookCard({
@@ -151,9 +152,11 @@ export default function NotebookCard({
   isFavorited = false,
   showFavorite = false,
   rating,
+  serialNumber,
 }: NotebookCardProps) {
   const design = COVER_DESIGNS[index % COVER_DESIGNS.length];
   const pat = patternStyle(design.patternType, design.patternColor);
+  const sNo = serialNumber || resource.serialNumber || index + 1;
 
   return (
     <div className="group flex flex-col gap-3">
@@ -237,6 +240,13 @@ export default function NotebookCard({
               }}
             >
               {resource.fileType}
+            </span>
+          </div>
+
+          {/* Serial number badge — top left of cover */}
+          <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-sm rounded-full h-6 w-6 flex items-center justify-center shadow-sm">
+            <span className="font-mono text-[10px] font-bold text-sage-dark">
+              {sNo}
             </span>
           </div>
         </Link>

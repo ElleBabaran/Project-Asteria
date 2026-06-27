@@ -10,10 +10,10 @@ export default function FeaturedShelf() {
   const { resources, recordDownload } = useApp();
   const { toasts, addToast, removeToast } = useToast();
 
-  // Show only approved resources, sort by downloads count
+  // Show all resources (they come from API already approved)
+  // Sort by serial number to maintain consistent order
   const approvedResources = resources
-    .filter((res) => res.status === "approved")
-    .sort((a, b) => b.downloadsCount - a.downloadsCount)
+    .sort((a, b) => (a.serialNumber || 0) - (b.serialNumber || 0))
     .slice(0, 8);
 
 const handleDownload = (e: React.MouseEvent, res: Resource) => {
@@ -79,6 +79,7 @@ const handleDownload = (e: React.MouseEvent, res: Resource) => {
                 key={res.id}
                 resource={res}
                 index={i}
+                serialNumber={res.serialNumber || i + 1}
                 onDownload={handleDownload}
               />
             ))}

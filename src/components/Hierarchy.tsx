@@ -15,6 +15,13 @@ const secondaryPath = [
   { label: "topic", example: "Cell Structure", color: "bg-paper text-sage-dark border border-sage-dark/15" },
 ];
 
+const usPath = [
+  { label: "country", example: "United States", color: "bg-sage text-paper" },
+  { label: "curriculum", example: "AP", color: "bg-leaf text-sage-dark" },
+  { label: "grade", example: "10th", color: "bg-blush text-sage-dark" },
+  { label: "topic", example: "World History", color: "bg-paper text-sage-dark border border-sage-dark/15" }, 
+];
+
 export default function Hierarchy() {
   return (
     <section id="how-it-works" className="bg-sage-dark px-6 py-20 lg:px-10">
@@ -72,6 +79,29 @@ export default function Hierarchy() {
                 </span>
               </div>
               {i < secondaryPath.length - 1 && (
+                <ChevronRight size={20} className="shrink-0 text-paper/30" />
+              )}
+            </div>
+          ))}
+        </div>
+        {/* US example path */}      
+        <div className="reveal-group mt-6 flex flex-wrap items-center gap-3 lg:flex-nowrap lg:overflow-x-auto">
+          {usPath.map((level, i) => (
+            <div key={`us-${level.label}`} className="flex shrink-0 items-center gap-3">
+              <div className={`flex flex-col gap-2 rounded-card px-5 py-4 ${level.color} min-w-[9.5rem] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.03]`}>
+                <span className="font-mono text-[0.6rem] uppercase tracking-[0.18em] opacity-60">
+                  {level.label}
+                </span>
+                <span className="flex items-center gap-2 font-display text-base font-semibold">
+                  {i === usPath.length - 1 ? (
+                    <FolderOpen size={16} className="opacity-70" />
+                  ) : (
+                    <Folder size={16} className="opacity-70" />
+                  )}
+                  {level.example}
+                </span>
+              </div>
+              {i < usPath.length - 1 && (
                 <ChevronRight size={20} className="shrink-0 text-paper/30" />
               )}
             </div>

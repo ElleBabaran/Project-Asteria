@@ -100,7 +100,9 @@ interface AppContextType {
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   resources: Resource[];
-  addResource: (resource: Omit<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments">) => void;
+  heroResourceIds: string[];
+  addResource: (resource: Omit<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments"> & Partial<Pick<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments">>) => void;
+  updateHeroResourceIds: (ids: string[]) => void;
   updateResourceStatus: (id: string, status: "approved" | "pending" | "rejected", reason?: string) => void;
   editResource: (id: string, updatedFields: Partial<Resource>) => void;
   deleteResource: (id: string) => void;
@@ -164,6 +166,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppContextProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [resources, setResources] = useState<Resource[]>(initialResources);
+  const [heroResourceIds, setHeroResourceIds] = useState<string[]>([]);
   const [savedResources, setSavedResources] = useState<string[]>([]);
   const [downloadHistory, setDownloadHistory] = useState<{ resourceId: string; timestamp: string }[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
@@ -269,6 +272,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     const cachedAnnouncements = localStorage.getItem("astera_announcements");
     const cachedCategories = localStorage.getItem("astera_categories");
     const cachedPartnerReqs = localStorage.getItem("astera_partner_requests");
+    const cachedHeroResources = localStorage.getItem("astera_hero_resources");
 
     if (cachedUser) setUser(JSON.parse(cachedUser));
     if (cachedSaved) setSavedResources(JSON.parse(cachedSaved));
@@ -277,6 +281,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     if (cachedReports) setBrokenReports(JSON.parse(cachedReports));
     if (cachedAnnouncements) setAnnouncements(JSON.parse(cachedAnnouncements));
     if (cachedCategories) setCategories(JSON.parse(cachedCategories));
+    if (cachedHeroResources) setHeroResourceIds(JSON.parse(cachedHeroResources));
     const cachedVolApps = localStorage.getItem("astera_vol_applications");
     if (cachedVolApps) setVolunteerApplications(JSON.parse(cachedVolApps));
     if (cachedPartnerReqs) setPartnerRequests(JSON.parse(cachedPartnerReqs));
@@ -351,20 +356,26 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     saveToLocal("astera_user", nextUser);
   };
 
-  const addResource = (res: Omit<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments">) => {
+  const addResource = (res: Omit<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments"> & Partial<Pick<Resource, "id" | "uploadDate" | "downloadsCount" | "likes" | "status" | "comments">>) => {
     const newRes: Resource = {
       ...res,
-      id: `res-${Date.now()}`,
-      uploadDate: new Date().toISOString().split("T")[0],
-      downloadsCount: 0,
-      likes: 0,
-      status: user?.role === "admin" ? "approved" : "pending",
-      comments: []
+      id: res.id ?? `res-${Date.now()}`,
+      uploadDate: res.uploadDate ?? new Date().toISOString().split("T")[0],
+      downloadsCount: res.downloadsCount ?? 0,
+      likes: res.likes ?? 0,
+      status: res.status ?? (user?.role === "admin" ? "approved" : "pending"),
+      comments: res.comments ?? []
     };
 
     const newResList = [newRes, ...resources];
     setResources(newResList);
     saveToLocal("astera_resources", newResList);
+  };
+
+  const updateHeroResourceIds = (ids: string[]) => {
+    const nextIds = [ids[0] ?? "", ids[1] ?? "", ids[2] ?? ""];
+    setHeroResourceIds(nextIds);
+    saveToLocal("astera_hero_resources", nextIds);
   };
 
   const updateResourceStatus = (id: string, status: "approved" | "pending" | "rejected", reason?: string) => {
@@ -585,7 +596,9 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         logout,
         updateUser,
         resources,
+        heroResourceIds,
         addResource,
+        updateHeroResourceIds,
         updateResourceStatus,
         editResource,
         deleteResource,

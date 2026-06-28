@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
           description,
           fileUrl,
           type: resourceType,
-          status: "APPROVED",
+            status: user.role === "ADMIN" ? "APPROVED" : "PENDING",
           submitterId: user.id,
           subjectId: s.id,
         }
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
         description,
         fileUrl,
         type: (type === "PDF" || type === "DOC") ? "STUDY_GUIDE" : type === "Worksheet" ? "WORKSHEET" : "OTHER",
-        status: "APPROVED",
+        status: submitterRole.toUpperCase() === "ADMIN" ? "APPROVED" : "PENDING",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         submitterId: "mock-user-id",

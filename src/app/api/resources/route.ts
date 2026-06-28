@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
         description,
         fileUrl,
         type: (type === "PDF" || type === "DOC") ? "STUDY_GUIDE" : type === "Worksheet" ? "WORKSHEET" : "OTHER",
-        status: submitterRole.toUpperCase() === "ADMIN" ? "APPROVED" : "PENDING",
+        status: "APPROVED",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         submitterId: "mock-user-id",

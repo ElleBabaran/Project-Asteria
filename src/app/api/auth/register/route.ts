@@ -59,12 +59,6 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/auth/register]", error);
-    const message =
-      process.env.NODE_ENV !== "production"
-        ? error instanceof Error
-          ? error.message
-          : String(error)
-        : "Internal server error.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

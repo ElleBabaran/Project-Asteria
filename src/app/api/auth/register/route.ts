@@ -38,14 +38,19 @@ export async function POST(req: NextRequest) {
     };
 
     // Create user
+    const userData: { name: string; email: string; password: string; role: "STUDENT" | "VOLUNTEER" | "ADMIN"; adminRole?: string | null } = {
+      name,
+      email,
+      password: hashedPassword,
+      role: roleMap[role] ?? "STUDENT",
+    };
+
+    if (role === "admin") {
+      userData.adminRole = adminRole ?? null;
+    }
+
     const user = await (prisma as any).user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: roleMap[role] ?? "STUDENT",
-        adminRole: role === "admin" ? adminRole : null,
-      },
+      data: userData,
     });
 
     return NextResponse.json({
@@ -54,6 +59,12 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/auth/register]", error);
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+    const message =
+      process.env.NODE_ENV !== "production"
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : "Internal server error.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -6,6 +6,87 @@ import { existsSync } from "fs";
 
 export const dynamic = "force-dynamic";
 
+// --- GET: Fetch approved resources from database ---
+export async function GET(req: NextRequest) {
+  try {
+    // First, let's check ALL resources to see what we have
+    const allResources = await prisma.resource.findMany({
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        submitter: { select: { name: true, email: true } },
+      },
+    });
+
+    console.log("=== ALL RESOURCES IN DB ===", allResources);
+
+    // Optimized query: Use raw SQL to avoid N+1 queries
+    const resources = await prisma.$queryRaw`
+      SELECT 
+        r.id,
+        r.title,
+        r.description,
+        r.type,
+        r.status,
+        r."fileUrl",
+        r."createdAt",
+        u.name,
+        u.email,
+        s.name as subject_name,
+        g.name as grade_name,
+        c.name as curriculum_name,
+        co.name as country_name
+      FROM "Resource" r
+      JOIN "User" u ON r."submitterId" = u.id
+      JOIN "Subject" s ON r."subjectId" = s.id
+      JOIN "Grade" g ON s."gradeId" = g.id
+      JOIN "Curriculum" c ON g."curriculumId" = c.id
+      JOIN "Country" co ON c."countryId" = co.id
+      WHERE r.status = 'APPROVED'
+      ORDER BY r."createdAt" DESC
+      LIMIT 50
+    `;
+
+    console.log("=== APPROVED RESOURCES ===", resources);
+
+    // Transform database resources to match frontend Resource interface
+    const transformedResources = (resources as any[]).map((res, index) => ({
+      id: res.id,
+      title: res.title,
+      country: res.country_name,
+      curriculum: res.curriculum_name,
+      grade: res.grade_name,
+      subject: res.subject_name,
+      topic: res.title,
+      description: res.description || "",
+      fileType:
+        res.type === "STUDY_GUIDE"
+          ? "PDF"
+          : res.type === "WORKSHEET"
+          ? "Worksheet"
+          : "PDF",
+      uploadDate: new Date(res.createdAt).toISOString().split("T")[0],
+      contributorName: res.name || res.email.split("@")[0],
+      downloadsCount: 0,
+      likes: 0,
+      status: "approved" as const,
+      fileSize: "2.0 MB",
+      fileUrl: res.fileUrl,
+      comments: [],
+      serialNumber: index + 1,
+    }));
+
+    console.log("=== TRANSFORMED RESOURCES ===", transformedResources);
+
+    return NextResponse.json({ resources: transformedResources });
+  } catch (error) {
+    console.error("[GET /api/resources] ERROR:", error);
+    // Return fallback empty array instead of error to prevent page crash
+    return NextResponse.json({ resources: [] }, { status: 200 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();

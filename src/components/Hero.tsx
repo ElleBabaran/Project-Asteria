@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Heart, Search, Sparkles } from "lucide-react";
+import { ArrowRight, FileType, Heart, Search, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useApp } from "@/context/AppContext";
 
-const catalogCards = [
+// Default cards if no resources exist (for layout purposes)
+const defaultCatalogCards = [
   {
     country: "India",
     path: "CBSE · Class 8 · Science",
@@ -16,6 +18,9 @@ const catalogCards = [
     delay: "0.1s",
     topOffset: "140px",
     leftOffset: "-30px",
+    resourceId: undefined,
+    fileType: "PDF",
+    fileSize: "12 Pages"
   },
   {
     country: "United States",
@@ -28,6 +33,9 @@ const catalogCards = [
     drift: true,
     topOffset: "70px",
     leftOffset: "0px",
+    resourceId: undefined,
+    fileType: "PDF",
+    fileSize: "12 Pages"
   },
   {
     country: "United Kingdom",
@@ -39,12 +47,48 @@ const catalogCards = [
     delay: "0.46s",
     topOffset: "0px",
     leftOffset: "30px",
+    resourceId: undefined,
+    fileType: "PDF",
+    fileSize: "12 Pages"
   },
 ];
+
+const colors = ["bg-leaf-light", "bg-blush-light", "bg-butter-light", "bg-sage-light"];
 
 export default function Hero() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+  const { resources } = useApp();
+
+  // Transform actual resources into card format
+  const getCatalogCards = () => {
+    if (resources.length === 0) {
+      return defaultCatalogCards; // Show default if no resources
+    }
+
+    const rotations = ["-12deg", "4deg", "18deg"];
+    const rotFroms = ["-25deg", "0deg", "30deg"];
+    const delays = ["0.1s", "0.28s", "0.46s"];
+    const topOffsets = ["140px", "70px", "0px"];
+    const leftOffsets = ["-30px", "0px", "30px"];
+    const drifts = [false, true, false];
+
+    return resources.slice(0, 3).map((res, i) => ({
+      country: res.country,
+      path: `${res.curriculum} · ${res.grade} · ${res.subject}`,
+      topic: res.title,
+      rot: rotations[i],
+      rotFrom: rotFroms[i],
+      color: colors[i % colors.length],
+      delay: delays[i],
+      topOffset: topOffsets[i],
+      leftOffset: leftOffsets[i],
+      drift: drifts[i],
+      resourceId: res.id,
+      fileType: res.fileType || "PDF",
+      fileSize: res.fileSize || "2.0 MB",
+    }));
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,9 +172,10 @@ export default function Hero() {
         <div className="relative mx-auto h-[420px] w-full max-w-md lg:h-[480px]">
           {/* Ground shadow */}
           <div className="absolute inset-x-10 bottom-2 h-4 rounded-full bg-sage-dark/10 blur-md" />
-          {catalogCards.map((card, i) => (
-            <div
-              key={card.country}
+          {getCatalogCards().map((card, i) => (
+            <Link
+              href={card.resourceId ? `/resources/${card.resourceId}` : "#"}
+              key={i}
               className="animate-fan-in absolute left-1/2 w-72"
               style={
                 {
@@ -157,14 +202,14 @@ export default function Hero() {
                 </p>
                 <div className="mt-5 flex items-center justify-between text-sage-dark/50">
                   <span className="font-mono text-[0.6rem] uppercase tracking-widest">
-                    PDF · 12 pages
+                    {card.fileType} · {card.fileSize}
                   </span>
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-paper/70 transition-colors hover:bg-paper">
                     <ArrowRight size={13} />
                   </span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

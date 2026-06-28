@@ -30,6 +30,7 @@ export interface Resource {
   fileSize: string;
   fileUrl?: string;
   comments: Comment[];
+  serialNumber?: number;
 }
 
 export interface BrokenLinkReport {
@@ -138,101 +139,8 @@ interface AppContextType {
   supportTickets: SupportTicket[];
 }
 
-const initialResources: Resource[] = [
-  // Pending submissions for Admin Dashboard
-  {
-    id: "res-7",
-    title: "Quadratic Equations Guide",
-    country: "United States",
-    curriculum: "Common Core",
-    grade: "Senior High School",
-    subject: "Mathematics",
-    topic: "Quadratic Equations",
-    description: "A complete visual guide explaining the quadratic formula, finding vertex points, and factoring methods. Submitted for review.",
-    fileType: "PDF",
-    uploadDate: "2026-06-11",
-    contributorName: "Alice Harper",
-    downloadsCount: 0,
-    likes: 0,
-    status: "pending",
-    fileSize: "1.8 MB",
-    comments: []
-  },
-  {
-    id: "res-8",
-    title: "Chemical Reactions Study Notes",
-    country: "India",
-    curriculum: "CBSE",
-    grade: "Junior High School",
-    subject: "Science",
-    topic: "Chemical Reactions",
-    description: "Brief revision notes for balancing chemical equations, types of reactions (combination, decomposition, displacement, redox), and everyday corrosion examples.",
-    fileType: "PDF",
-    uploadDate: "2026-06-12",
-    contributorName: "Rajesh Kumar",
-    downloadsCount: 0,
-    likes: 0,
-    status: "pending",
-    fileSize: "1.4 MB",
-    comments: []
-  },
-  {
-    id: "res-9",
-    title: "Shakespeare's Macbeth Summary",
-    country: "United Kingdom",
-    curriculum: "GCSE",
-    grade: "Junior High School",
-    subject: "English Literature",
-    topic: "Macbeth",
-    description: "Detailed character profiles, key scene analyses, and quotes pack with critical context notes for the AQA GCSE exam.",
-    fileType: "Worksheet",
-    uploadDate: "2026-06-13",
-    contributorName: "Chloe Jenkins",
-    downloadsCount: 0,
-    likes: 0,
-    status: "pending",
-    fileSize: "2.1 MB",
-    comments: []
-  },
-{
-  id: "res-10",
-  title: "Atoms, Elements and Compounds",
-  country: "India",
-  curriculum: "CBSE",
-  grade: "Junior High School",
-  subject: "Chemistry",
-  topic: "About the Atoms in each and every body and their chemistry with compounds and elements ",
-  description: "Key Structure of an atom, Difference between molecules and compounds, Practise Questions",
-  fileType: "PDF",
-  uploadDate: "2026-06-16",
-  contributorName: "Nitara Singh",
-  downloadsCount: 0,
-  likes: 0,
-  status: "approved",
-  fileSize: "1 MB",
-  fileUrl: "/resources/atoms-elements-and-compounds-handwritten-notes.pdf",
-  comments: []
-},
-{
-  id: "res-11",
-  title: "Forces And Laws Of Motion",
-  country: "India",
-  curriculum: "CBSE",
-  grade: "Junior High School",
-  subject: "Physics",
-  topic: "Force",
-  description: "Newton's Laws of Motion||Inertia||Momentum",
-  fileType: "DOC",
-  uploadDate: "2026-06-16",
-  contributorName: "Arjun Singh",
-  downloadsCount: 0,
-  likes: 0,
-  status: "approved",
-  fileSize: "500 KB",
-  fileUrl: "/resources/Force-and-Laws-of-Motion.docx",
-  comments: []
-}
-];
+// All resources now come from database API - no hardcoded resources
+const initialResources: Resource[] = [];
 
 const initialAnnouncements: Announcement[] = [
   {
@@ -354,7 +262,6 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   // Load from localStorage on client side mount
   useEffect(() => {
     const cachedUser = localStorage.getItem("astera_user");
-    const cachedResources = localStorage.getItem("astera_resources");
     const cachedSaved = localStorage.getItem("astera_saved");
     const cachedHistory = localStorage.getItem("astera_history");
     const cachedRecent = localStorage.getItem("astera_recent");
@@ -364,7 +271,6 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     const cachedPartnerReqs = localStorage.getItem("astera_partner_requests");
 
     if (cachedUser) setUser(JSON.parse(cachedUser));
-    if (cachedResources) setResources(JSON.parse(cachedResources));
     if (cachedSaved) setSavedResources(JSON.parse(cachedSaved));
     if (cachedHistory) setDownloadHistory(JSON.parse(cachedHistory));
     if (cachedRecent) setRecentlyViewed(JSON.parse(cachedRecent));
@@ -374,6 +280,33 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     const cachedVolApps = localStorage.getItem("astera_vol_applications");
     if (cachedVolApps) setVolunteerApplications(JSON.parse(cachedVolApps));
     if (cachedPartnerReqs) setPartnerRequests(JSON.parse(cachedPartnerReqs));
+
+    // Fetch resources from API - ONLY database resources, no hardcoded fallback
+    const fetchResources = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch("/api/resources", { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        const data = await response.json();
+        if (data.resources && Array.isArray(data.resources)) {
+          // Use only actual database resources
+          setResources(data.resources);
+          saveToLocal("astera_resources", data.resources);
+        } else {
+          // If API returns no resources, show empty (no fallback)
+          setResources([]);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch resources from API", error);
+        // On error, show empty - user can still see other parts of app
+        setResources([]);
+      }
+    };
+
+    fetchResources();
 
     // Simulate ticking visitors count for live feel
     const interval = setInterval(() => {

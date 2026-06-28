@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
           description,
           fileUrl,
           type: resourceType,
-          status: user.role === "ADMIN" ? "APPROVED" : "PENDING",
+          status: "APPROVED",
           submitterId: user.id,
           subjectId: s.id,
         }

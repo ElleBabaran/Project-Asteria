@@ -147,10 +147,15 @@ export default function VolunteerDashboard() {
           
           // Also add to local UI state so it shows up instantly without full page refresh
           addResource({
+            id: data.resource?.id,
             title, country, curriculum: "", grade, subject: effectiveSubject, topic, description, fileType,
+            uploadDate: data.resource?.createdAt
+              ? new Date(data.resource.createdAt).toISOString().split("T")[0]
+              : undefined,
             fileSize: file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : fileSize,
             contributorName: user.name,
             fileUrl: data.fileUrl,
+            status: data.resource?.status === "APPROVED" ? "approved" : data.resource?.status === "REJECTED" ? "rejected" : "pending",
           });
         } else {
           const data = await res.json();

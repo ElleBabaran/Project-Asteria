@@ -58,11 +58,13 @@ const colors = ["bg-leaf-light", "bg-blush-light", "bg-butter-light", "bg-sage-l
 export default function Hero() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
-  const { resources } = useApp();
+  const { resources, heroResourceIds } = useApp();
 
   // Transform actual resources into card format
   const getCatalogCards = () => {
-    if (resources.length === 0) {
+    const approvedResources = resources.filter((res) => res.status === "approved");
+
+    if (approvedResources.length === 0) {
       return defaultCatalogCards; // Show default if no resources
     }
 
@@ -73,7 +75,15 @@ export default function Hero() {
     const leftOffsets = ["-30px", "0px", "30px"];
     const drifts = [false, true, false];
 
-    return resources.slice(0, 3).map((res, i) => ({
+    const selectedHeroResources = heroResourceIds
+      .map((id) => approvedResources.find((res) => res.id === id))
+      .filter((res): res is (typeof approvedResources)[number] => Boolean(res));
+    const remainingResources = approvedResources.filter(
+      (res) => !selectedHeroResources.some((selected) => selected.id === res.id)
+    );
+    const heroResources = [...selectedHeroResources, ...remainingResources].slice(0, 3);
+
+    return heroResources.map((res, i) => ({
       country: res.country,
       path: `${res.curriculum} · ${res.grade} · ${res.subject}`,
       topic: res.title,

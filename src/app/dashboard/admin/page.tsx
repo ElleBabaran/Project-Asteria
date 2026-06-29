@@ -34,6 +34,8 @@ export default function AdminDashboard() {
     user,
     login,
     resources,
+    heroResourceIds,
+    updateHeroResourceIds,
     updateResourceStatus,
     deleteResource,
     brokenReports,
@@ -144,12 +146,17 @@ export default function AdminDashboard() {
         resetUploadForm();
         
         // Add directly to context as approved since admin uploaded it
-        addResource({
-          title, country, curriculum: "", grade, subject: effectiveSubject, topic, description, fileType,
-          fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-          contributorName: user.name,
-          fileUrl: data.fileUrl,
-        });
+          addResource({
+            id: data.resource?.id,
+            title, country, curriculum: "", grade, subject: effectiveSubject, topic, description, fileType,
+            uploadDate: data.resource?.createdAt
+              ? new Date(data.resource.createdAt).toISOString().split("T")[0]
+              : undefined,
+            fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+            contributorName: user.name,
+            fileUrl: data.fileUrl,
+            status: data.resource?.status === "PENDING" ? "pending" : data.resource?.status === "REJECTED" ? "rejected" : "approved",
+          });
       } else {
         const data = await res.json();
         addToast(`Upload error: ${data.error}`);
@@ -246,11 +253,29 @@ export default function AdminDashboard() {
 
   // Moderation filter
   const pendingResources = resources.filter((res) => res.status === "pending");
+  const approvedResources = resources.filter((res) => res.status === "approved");
 
   // Approve handler
-  const handleApprove = (id: string) => {
-    updateResourceStatus(id, "approved");
-    addToast("Resource approved successfully! It is now live.", "check");
+  const handleApprove = async (id: string) => {
+    try {
+      const res = await fetch("/api/resources", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "approved" }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to approve resource." }));
+        addToast(data.error || "Failed to approve resource.");
+        return;
+      }
+
+      updateResourceStatus(id, "approved");
+      addToast("Resource approved successfully! It is now live.", "check");
+    } catch (error) {
+      console.error(error);
+      addToast("Failed to approve resource in database.");
+    }
   };
 
   // Reject trigger
@@ -259,13 +284,47 @@ export default function AdminDashboard() {
     setRejectReason("");
   };
 
-  const handleRejectSubmit = (e: React.FormEvent) => {
+  const handleRejectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectId || !rejectReason.trim()) return;
-    updateResourceStatus(rejectId, "rejected", rejectReason.trim());
-    setRejectId(null);
-    setRejectReason("");
-    addToast("Resource rejected. Feedback sent to contributor.");
+
+    try {
+      const res = await fetch("/api/resources", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: rejectId, status: "rejected" }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to reject resource." }));
+        addToast(data.error || "Failed to reject resource.");
+        return;
+      }
+
+      updateResourceStatus(rejectId, "rejected", rejectReason.trim());
+      setRejectId(null);
+      setRejectReason("");
+      addToast("Resource rejected. Feedback sent to contributor.");
+    } catch (error) {
+      console.error(error);
+      addToast("Failed to reject resource in database.");
+    }
+  };
+
+  const handleHeroSlotChange = (slotIndex: number, resourceId: string) => {
+    const nextHeroIds = [heroResourceIds[0] ?? "", heroResourceIds[1] ?? "", heroResourceIds[2] ?? ""];
+    nextHeroIds[slotIndex] = resourceId;
+
+    if (resourceId) {
+      nextHeroIds.forEach((id, index) => {
+        if (index !== slotIndex && id === resourceId) {
+          nextHeroIds[index] = "";
+        }
+      });
+    }
+
+    updateHeroResourceIds(nextHeroIds);
+    addToast(resourceId ? "Homepage hero cards updated." : "Hero card slot cleared.", "check");
   };
 
   // Add Category Handler
@@ -288,8 +347,7 @@ export default function AdminDashboard() {
   };
 
   // Sort resources for Analytics
-  const popularResources = [...resources]
-    .filter((res) => res.status === "approved")
+  const popularResources = [...approvedResources]
     .sort((a, b) => b.downloadsCount - a.downloadsCount)
     .slice(0, 5);
 
@@ -528,6 +586,68 @@ export default function AdminDashboard() {
                     <strong className="text-2xl font-bold text-sage-dark">{analytics.activeVolunteers}</strong>
                   </div>
                 </div>
+              </div>
+
+              <div className="bg-paper p-6 rounded-card border border-sage-dark/10 shadow-card">
+                <div className="flex flex-col gap-1 border-b border-sage-dark/8 pb-3 mb-4">
+                  <h3 className="font-display font-semibold text-sage-dark flex items-center gap-2">
+                    <Star size={16} />
+                    Homepage Hero Cards
+                  </h3>
+                  <p className="text-xs text-ink/55">
+                    Choose exactly which approved resources appear in the three homepage card slots.
+                  </p>
+                </div>
+
+                {approvedResources.length === 0 ? (
+                  <p className="text-xs text-ink/50 italic">
+                    No approved resources are available yet. Approve a resource first, then return here to feature it.
+                  </p>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[0, 1, 2].map((slot) => {
+                      const selectedId = heroResourceIds[slot] ?? "";
+                      const selectedResource = approvedResources.find((res) => res.id === selectedId);
+
+                      return (
+                        <div key={slot} className="rounded-card border border-sage-dark/10 bg-cream/25 p-4">
+                          <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-sage">
+                            Hero Slot {slot + 1}
+                          </label>
+                          <select
+                            value={selectedId}
+                            onChange={(e) => handleHeroSlotChange(slot, e.target.value)}
+                            className="mt-2 w-full rounded-card border border-sage-dark/10 bg-paper px-3 py-2 text-xs text-ink outline-none focus:border-sage"
+                          >
+                            <option value="">Auto-fill from approved resources</option>
+                            {approvedResources.map((res) => (
+                              <option
+                                key={res.id}
+                                value={res.id}
+                                disabled={heroResourceIds.includes(res.id) && selectedId !== res.id}
+                              >
+                                {res.title} - {res.subject} / {res.grade}
+                              </option>
+                            ))}
+                          </select>
+
+                          <div className="mt-3 min-h-[52px] rounded-card bg-paper/70 p-3 text-xs">
+                            {selectedResource ? (
+                              <>
+                                <p className="font-semibold text-sage-dark line-clamp-1">{selectedResource.title}</p>
+                                <p className="mt-1 font-mono text-[10px] text-ink/45">
+                                  {selectedResource.country} &bull; {selectedResource.fileType}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-ink/45 italic">This slot will use the next approved resource automatically.</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-6 lg:grid-cols-2">
